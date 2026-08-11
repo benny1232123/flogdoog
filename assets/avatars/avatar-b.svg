@@ -1,16 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
-<defs><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/>
-<feColorMatrix in="n" type="saturate" values="0"/>
-<feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
-<feComposite operator="in" in2="SourceGraphic"/></filter><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBE0E4"/><stop offset="1" stop-color="#EDB2BE"/></linearGradient></defs>
-<rect width="400" height="400" fill="url(#ag)"/>
-<circle cx="200" cy="330" r="150" fill="#E8899A" opacity="0.85"/>
-<circle cx="200" cy="180" r="86" fill="#FDE6D4"/>
-<path d="M112 178 q6 -106 88 -106 t88 106 q6 60 -14 96 q-6 -80 -74 -80 t-74 80 q-20 -36 -14 -96z" fill="#4A3038"/>
-<circle cx="172" cy="176" r="7" fill="#4A3B3F"/>
-<circle cx="228" cy="176" r="7" fill="#4A3B3F"/>
-<path d="M182 208 q18 14 36 0" stroke="#C9776F" stroke-width="5" fill="none" stroke-linecap="round"/>
-<circle cx="146" cy="196" r="12" fill="#F0A0A0" opacity="0.5"/>
-<circle cx="254" cy="196" r="12" fill="#F0A0A0" opacity="0.5"/>
+<defs>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/>
+    <feColorMatrix in="n" type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="linear" slope="0.05"/></feComponentTransfer>
+    <feComposite operator="in" in2="SourceGraphic"/></filter>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBEAD7"/><stop offset="1" stop-color="#F3CFAC"/></linearGradient>
+  <radialGradient id="fur" cx="0.5" cy="0.4" r="0.72"><stop offset="0" stop-color="#F6DFBF"/><stop offset="1" stop-color="#E7C298"/></radialGradient>
+</defs>
+<rect width="400" height="400" fill="url(#bg)"/>
+<!-- 耳朵（在头后） -->
+<path d="M104 150 q-30 30 -22 122 q4 42 46 30 q22 -8 24 -54 z" fill="#C98A5E"/>
+<path d="M296 150 q30 30 22 122 q-4 42 -46 30 q-22 -8 -24 -54 z" fill="#C98A5E"/>
+<!-- 头 -->
+<ellipse cx="200" cy="206" rx="118" ry="110" fill="url(#fur)"/>
+<!-- 耳内 -->
+<path d="M122 168 q-14 28 -10 82 q24 -6 30 -44 z" fill="#E9B98C" opacity="0.7"/>
+<path d="M278 168 q14 28 10 82 q-24 -6 -30 -44 z" fill="#E9B98C" opacity="0.7"/>
+<!-- 口鼻 -->
+<ellipse cx="200" cy="258" rx="62" ry="48" fill="#FCF1E2"/>
+<!-- 鼻子 -->
+<path d="M178 240 q22 -16 44 0 q2 17 -22 23 q-24 -6 -22 -23 z" fill="#3B2A22"/>
+<!-- 嘴 -->
+<path d="M200 263 v17 M200 280 q-26 16 -46 2 M200 280 q26 16 46 2" fill="none" stroke="#7A5A48" stroke-width="6" stroke-linecap="round"/>
+<!-- 舌头 -->
+<path d="M186 292 q14 22 28 0 q-2 18 -14 18 q-12 0 -14 -18 z" fill="#F4A6B0"/>
+<!-- 眼睛 -->
+<circle cx="162" cy="186" r="13" fill="#3B2A22"/>
+<circle cx="238" cy="186" r="13" fill="#3B2A22"/>
+<circle cx="167" cy="181" r="4" fill="#fff"/>
+<circle cx="243" cy="181" r="4" fill="#fff"/>
+<!-- 腮红 -->
+<circle cx="130" cy="232" r="15" fill="#F4B6A0" opacity="0.45"/>
+<circle cx="270" cy="232" r="15" fill="#F4B6A0" opacity="0.45"/>
 <rect width="400" height="400" filter="url(#grain)" fill="#fff" opacity="0.5"/>
 </svg>

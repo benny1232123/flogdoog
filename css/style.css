@@ -61,6 +61,35 @@
     50%      { transform: translateX(-50%) scale(1.13); opacity: 1; }
 }
 
+/* 青蛙 + 小狗 装饰形象（桌面端漂浮于 Hero 两侧，移动端隐藏避免遮挡） */
+.mascots {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.mascot {
+    position: absolute;
+    width: clamp(64px, 15vw, 104px);
+    height: auto;
+    opacity: .94;
+    filter: drop-shadow(0 12px 20px rgba(90, 70, 55, .18));
+}
+.mascot-frog {
+    left: max(4px, 1.5vw);
+    bottom: 92px;
+    animation: floatY 5.4s var(--ease) infinite;
+}
+.mascot-dog {
+    right: max(4px, 1.5vw);
+    bottom: 74px;
+    animation: floatY 6.1s var(--ease) infinite .6s;
+}
+@keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-13px); }
+}
+
 .eyebrow {
     font-size: .72rem;
     letter-spacing: .42em;
@@ -981,6 +1010,7 @@
     .sec-head { margin-bottom: 34px; }
 
     /* Hero */
+    .mascots { display: none; }
     .couple { gap: 8px; }
     .declaration { max-width: 24ch; }
     .counter { margin-top: 38px; padding: 26px 18px 22px; }

@@ -15,7 +15,7 @@
     "declaration": "从那个下着小雨的傍晚开始，世界就多了一个只属于我们的坐标。",
     "partners": [
       {
-        "name": "阿元",
+        "name": "阿蛙",
         "role": "他",
         "avatar": "assets/avatars/avatar-a.svg",
         "birthday": "1997-03-14",
@@ -28,10 +28,10 @@
           "老电影",
           "爬山"
         ],
-        "accent": "#7FA9C4"
+        "accent": "#74B072"
       },
       {
-        "name": "小满",
+        "name": "阿狗",
         "role": "她",
         "avatar": "assets/avatars/avatar-b.svg",
         "birthday": "1998-06-21",
@@ -44,7 +44,7 @@
           "小说",
           "撸猫"
         ],
-        "accent": "#E8899A"
+        "accent": "#E0A06D"
       }
     ]
   },
@@ -57,7 +57,7 @@
       "note": "一切开始的那一天"
     },
     {
-      "title": "阿元生日",
+      "title": "阿蛙生日",
       "date": "1997-03-14",
       "type": "annual",
       "icon": "cake",
@@ -65,7 +65,7 @@
       "note": "要陪你过很多很多个"
     },
     {
-      "title": "小满生日",
+      "title": "阿狗生日",
       "date": "1998-06-21",
       "type": "annual",
       "icon": "cake",
@@ -242,14 +242,14 @@
   ],
   "messages": [
     {
-      "author": "小满",
+      "author": "阿狗",
       "mood": "想你",
       "text": "今天路过我们第一次吃饭的那家店，还在营业，招牌换了。突然很想你。",
       "time": "2026-08-05T21:14:00",
       "likes": 2
     },
     {
-      "author": "阿元",
+      "author": "阿蛙",
       "mood": "开心",
       "text": "周末带你去看看？顺便把上次没吃到的甜品补上。",
       "time": "2026-08-05T22:03:00",
