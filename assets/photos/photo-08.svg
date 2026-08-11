@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 950" width="900" height="950">
+<defs><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/>
+<feColorMatrix in="n" type="saturate" values="0"/>
+<feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+<feComposite operator="in" in2="SourceGraphic"/></filter><linearGradient id="g8" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFE0CE"/><stop offset="1" stop-color="#C9A588"/></linearGradient></defs>
+<rect width="900" height="950" fill="url(#g8)"/>
+<path d="M330 380 h240 l-56 200 h-128 z" fill="#FFF8EE" opacity="0.9"/>
+<rect x="386" y="600" width="128" height="26" rx="10" fill="#8B6A55" opacity="0.7"/>
+<path d="M360 640 h180 l-26 200 h-128 z" fill="#FFF8EE" opacity="0.75"/>
+<path d="M400 700 h100 l-14 120 h-72 z" fill="#7A5340" opacity="0.8"/>
+<g stroke="#FFF8EE" stroke-width="5" fill="none" opacity="0.55">
+  <path d="M420 300 q24 -50 0 -100"/><path d="M480 300 q24 -60 0 -120"/>
+</g>
+<circle cx="180" cy="220" r="60" fill="#FFF8EE" opacity="0.35"/>
+<rect width="900" height="950" filter="url(#grain)" fill="#fff" opacity="0.5"/>
+</svg>

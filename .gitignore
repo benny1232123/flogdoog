@@ -1,0 +1,11 @@
+# 本地研究/测试产物（不部署）
+_research/
+node_modules/
+
+# WorkBuddy 项目元数据
+.workbuddy/
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+*.log

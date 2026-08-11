@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620">
+<defs><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/>
+<feColorMatrix in="n" type="saturate" values="0"/>
+<feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+<feComposite operator="in" in2="SourceGraphic"/></filter><linearGradient id="g9" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9D6E8"/><stop offset="1" stop-color="#9FAFC9"/></linearGradient></defs>
+<rect width="900" height="620" fill="url(#g9)"/>
+<ellipse cx="450" cy="470" rx="360" ry="120" fill="#FFF7EC" opacity="0.85"/>
+<circle cx="380" cy="330" r="88" fill="#FFF0DE" opacity="0.95"/>
+<path d="M340 330 q18 14 36 0" stroke="#8A6E63" stroke-width="5" fill="none"/>
+<path d="M398 330 q18 14 36 0" stroke="#8A6E63" stroke-width="5" fill="none"/>
+<path d="M560 250 q18 -30 36 0 t36 0" stroke="#FFF7EC" stroke-width="5" fill="none" opacity="0.7"/>
+<text x="600" y="220" font-size="54" fill="#FFF7EC" opacity="0.6" font-family="serif">z</text>
+<text x="650" y="180" font-size="38" fill="#FFF7EC" opacity="0.45" font-family="serif">z</text>
+<rect width="900" height="620" filter="url(#grain)" fill="#fff" opacity="0.5"/>
+</svg>

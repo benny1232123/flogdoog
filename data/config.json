@@ -1,0 +1,259 @@
+{
+  "site": {
+    "title": "我们的小星球",
+    "subtitle": "Our Little Planet",
+    "password": "520520",
+    "passwordEnabled": true,
+    "passwordExpiryMinutes": 120,
+    "footerNote": "愿此后年岁，都有彼此同行"
+  },
+  "couple": {
+    "startDate": "2021-05-20",
+    "startTime": "20:18:00",
+    "counterTextBefore": "距离和你在一起还有",
+    "counterTextAfter": "我们已经相爱",
+    "declaration": "从那个下着小雨的傍晚开始，世界就多了一个只属于我们的坐标。",
+    "partners": [
+      {
+        "name": "阿元",
+        "role": "他",
+        "avatar": "assets/avatars/avatar-a.svg",
+        "birthday": "1997-03-14",
+        "mbti": "INFJ",
+        "city": "杭州",
+        "motto": "你在的地方就是主场。",
+        "tags": [
+          "摄影",
+          "做饭",
+          "老电影",
+          "爬山"
+        ],
+        "accent": "#7FA9C4"
+      },
+      {
+        "name": "小满",
+        "role": "她",
+        "avatar": "assets/avatars/avatar-b.svg",
+        "birthday": "1998-06-21",
+        "mbti": "ENFP",
+        "city": "杭州",
+        "motto": "有你之后，日子都变成了甜的。",
+        "tags": [
+          "烘焙",
+          "手冲咖啡",
+          "小说",
+          "撸猫"
+        ],
+        "accent": "#E8899A"
+      }
+    ]
+  },
+  "anniversaries": [
+    {
+      "title": "在一起纪念日",
+      "date": "2021-05-20",
+      "type": "annual",
+      "icon": "heart",
+      "note": "一切开始的那一天"
+    },
+    {
+      "title": "阿元生日",
+      "date": "1997-03-14",
+      "type": "annual",
+      "icon": "cake",
+      "unit": "岁",
+      "note": "要陪你过很多很多个"
+    },
+    {
+      "title": "小满生日",
+      "date": "1998-06-21",
+      "type": "annual",
+      "icon": "cake",
+      "unit": "岁",
+      "note": "今年想吃什么口味的蛋糕"
+    },
+    {
+      "title": "第一次旅行",
+      "date": "2021-10-02",
+      "type": "annual",
+      "icon": "plane",
+      "note": "青岛的海风和啤酒"
+    },
+    {
+      "title": "领证的日子",
+      "date": "2026-05-20",
+      "type": "once",
+      "icon": "ring",
+      "note": "说好了要一起去的"
+    },
+    {
+      "title": "搬进新家",
+      "date": "2024-08-08",
+      "type": "annual",
+      "icon": "home",
+      "note": "有了真正属于我们的厨房"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2021-04-08",
+      "title": "第一次见面",
+      "description": "朋友的生日局，你坐在我斜对面，笑起来眼睛会弯。我全程都在偷偷看你，还假装是在看菜单。",
+      "photo": "assets/photos/photo-01.svg",
+      "tags": [
+        "初见",
+        "心动"
+      ],
+      "mood": "怦然"
+    },
+    {
+      "date": "2021-05-20",
+      "title": "在一起了",
+      "description": "下着小雨的傍晚，我们在便利店门口分一把伞。我问你要不要试试，你说好啊。就这么简单，也就这么郑重。",
+      "photo": "assets/photos/photo-02.svg",
+      "tags": [
+        "里程碑",
+        "520"
+      ],
+      "mood": "郑重",
+      "top": true
+    },
+    {
+      "date": "2021-10-02",
+      "title": "第一次一起旅行",
+      "description": "青岛。你在海边把鞋脱了追浪花，回头喊我快点。那一刻我想，以后每年都要带你看一次海。",
+      "photo": "assets/photos/photo-03.svg",
+      "tags": [
+        "旅行",
+        "青岛"
+      ],
+      "mood": "自由"
+    },
+    {
+      "date": "2022-02-14",
+      "title": "第一次一起下厨",
+      "description": "厨房差点着火，糖醋排骨咸得离谱，但我们边笑边吃光了。那天之后你开始学做饭，很认真。",
+      "photo": "assets/photos/photo-04.svg",
+      "tags": [
+        "日常",
+        "烟火气"
+      ],
+      "mood": "温热"
+    },
+    {
+      "date": "2023-01-21",
+      "title": "第一次见家长",
+      "description": "你紧张到在楼下反复背台词。其实我妈第一眼就喜欢你，还偷偷跟我说这个姑娘眼睛很干净。",
+      "photo": "assets/photos/photo-05.svg",
+      "tags": [
+        "家人",
+        "新年"
+      ],
+      "mood": "安心"
+    },
+    {
+      "date": "2024-08-08",
+      "title": "搬进我们的家",
+      "description": "六十平米，一张能并肩做饭的料理台，一面放照片的墙。搬完那晚我们坐在地板上吃泡面，觉得世界很完整。",
+      "photo": "assets/photos/photo-06.svg",
+      "tags": [
+        "里程碑",
+        "新家"
+      ],
+      "mood": "圆满",
+      "top": true
+    },
+    {
+      "date": "2025-12-24",
+      "title": "第五个平安夜",
+      "description": "又一起挂了那串旧灯串，有两个灯泡不亮了，你说这样才有故事感。",
+      "photo": "assets/photos/photo-07.svg",
+      "tags": [
+        "节日",
+        "日常"
+      ],
+      "mood": "静好"
+    }
+  ],
+  "gallery": [
+    {
+      "src": "assets/photos/photo-01.svg",
+      "caption": "第一次见面的那家店",
+      "date": "2021-04-08",
+      "w": 900,
+      "h": 1200
+    },
+    {
+      "src": "assets/photos/photo-02.svg",
+      "caption": "便利店门口的一把伞",
+      "date": "2021-05-20",
+      "w": 900,
+      "h": 1000
+    },
+    {
+      "src": "assets/photos/photo-03.svg",
+      "caption": "青岛的海",
+      "date": "2021-10-02",
+      "w": 900,
+      "h": 700
+    },
+    {
+      "src": "assets/photos/photo-04.svg",
+      "caption": "第一顿翻车的晚饭",
+      "date": "2022-02-14",
+      "w": 900,
+      "h": 1100
+    },
+    {
+      "src": "assets/photos/photo-05.svg",
+      "caption": "过年回家",
+      "date": "2023-01-21",
+      "w": 900,
+      "h": 900
+    },
+    {
+      "src": "assets/photos/photo-06.svg",
+      "caption": "新家的第一束光",
+      "date": "2024-08-08",
+      "w": 900,
+      "h": 1150
+    },
+    {
+      "src": "assets/photos/photo-07.svg",
+      "caption": "旧灯串",
+      "date": "2025-12-24",
+      "w": 900,
+      "h": 750
+    },
+    {
+      "src": "assets/photos/photo-08.svg",
+      "caption": "周末的手冲",
+      "date": "2026-03-15",
+      "w": 900,
+      "h": 950
+    },
+    {
+      "src": "assets/photos/photo-09.svg",
+      "caption": "你睡着的样子",
+      "date": "2026-06-02",
+      "w": 900,
+      "h": 620
+    }
+  ],
+  "messages": [
+    {
+      "author": "小满",
+      "mood": "想你",
+      "text": "今天路过我们第一次吃饭的那家店，还在营业，招牌换了。突然很想你。",
+      "time": "2026-08-05T21:14:00",
+      "likes": 2
+    },
+    {
+      "author": "阿元",
+      "mood": "开心",
+      "text": "周末带你去看看？顺便把上次没吃到的甜品补上。",
+      "time": "2026-08-05T22:03:00",
+      "likes": 1
+    }
+  ]
+}

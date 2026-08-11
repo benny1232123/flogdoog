@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1000" width="900" height="1000">
+<defs><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="n"/>
+<feColorMatrix in="n" type="saturate" values="0"/>
+<feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+<feComposite operator="in" in2="SourceGraphic"/></filter><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9BEDC"/><stop offset="1" stop-color="#D9C3D6"/></linearGradient></defs>
+<rect width="900" height="1000" fill="url(#g2)"/>
+<g stroke="#FFFFFF" stroke-width="3" opacity="0.35">
+  <path d="M100 80 l-40 140"/><path d="M240 40 l-40 140"/><path d="M400 90 l-40 140"/>
+  <path d="M560 30 l-40 140"/><path d="M720 100 l-40 140"/><path d="M840 50 l-40 140"/>
+  <path d="M170 300 l-40 140"/><path d="M330 260 l-40 140"/><path d="M640 280 l-40 140"/>
+</g>
+<path d="M180 560 q270 -230 540 0 z" fill="#E8899A" opacity="0.92"/>
+<path d="M450 560 v250" stroke="#7A5B52" stroke-width="9" fill="none"/>
+<path d="M450 810 q40 0 40 -34" stroke="#7A5B52" stroke-width="9" fill="none"/>
+<circle cx="392" cy="700" r="42" fill="#FFF3E6" opacity="0.9"/>
+<circle cx="512" cy="700" r="42" fill="#FFF3E6" opacity="0.9"/>
+<rect x="352" y="746" width="80" height="150" rx="26" fill="#FFF3E6" opacity="0.75"/>
+<rect x="472" y="746" width="80" height="150" rx="26" fill="#FFF3E6" opacity="0.75"/>
+<rect width="900" height="1000" filter="url(#grain)" fill="#fff" opacity="0.5"/>
+</svg>
