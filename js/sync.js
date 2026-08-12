@@ -40,7 +40,8 @@
             });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            if (data && typeof data === 'object') {
+            // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回 null
+            if (data && typeof data === 'object' && Object.keys(data).length) {
                 store.set(OVERLAY_KEY, data); // 覆盖本机覆盖层，供 Editor.applyOverlay 读取
                 return data;
             }

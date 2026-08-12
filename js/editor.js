@@ -51,7 +51,8 @@
 
     function getWorkingBase() {
         const o = loadOverlay();
-        if (o) return clone(o);
+        // 空对象 {} 视为「无覆盖」，回退到 config 默认值，避免编辑副本被清空
+        if (o && typeof o === 'object' && Object.keys(o).length) return clone(o);
         return {
             site: clone(state.config.site),
             couple: clone(state.config.couple),
@@ -409,6 +410,13 @@
         if (act === 'sync-now') {
             if (!LP.Sync || !LP.Sync.isConfigured()) { toast('请先填写同步地址和密钥'); return; }
             toast('正在同步…');
+            // 先把本机当前内容上传到云端（首次设同步时也能把完整内容传上去），再拉取合并
+            const obj = {
+                site: working.site, couple: working.couple,
+                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery
+            };
+            const ok = await LP.Sync.push(obj);
+            if (!ok) { toast('上传失败，检查地址/密钥或网络'); return; }
             const remote = await LP.Sync.pull();
             if (!remote) { toast('拉取失败，检查地址/密钥或网络'); return; }
             try {
@@ -418,7 +426,7 @@
                 if (LP.startCounter) LP.startCounter();
                 // 把刚刚拉到的远端数据刷新到编辑器工作副本，避免下次保存覆盖
                 loadWorkingFromConfig();
-                toast('已从云端同步');
+                toast('云端同步成功');
                 renderTab();
             } catch (e) { toast('同步应用失败'); }
             return;
