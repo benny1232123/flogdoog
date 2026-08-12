@@ -12,3 +12,6 @@ Thumbs.db
 
 # 部署打包产物（本地生成，不入库）
 our-planet.zip
+
+# 含密钥的 Worker 配置（明文 SYNC_KEY，禁止入库）
+worker/wrangler.toml
