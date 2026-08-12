@@ -314,7 +314,6 @@
         else if (activeTab === 'wall') html = await renderWall();
         else html = '';
         body.innerHTML = html;
-        bindTabInputs(body);
         resolvePreviews(body);
     }
 
@@ -332,16 +331,7 @@
     }
 
     /* ---------------- 输入绑定 ---------------- */
-    function bindTabInputs(body) {
-        // 文本/选择/勾选：失焦或切换时写入 working 并提交（不重渲本标签，保留焦点）
-        body.addEventListener('change', (e) => {
-            const t = e.target;
-            const coll = t.dataset.coll;
-            if (!coll) return;
-            writeField(coll, t);
-        });
-    }
-
+    // change 事件统一在 init() 里委托绑定一次（#editor-body 不随 innerHTML 替换而重复绑定）
     function writeField(coll, t) {
         const f = t.dataset.f;
         let val;
@@ -517,6 +507,14 @@
             if (!btn) return;
             e.preventDefault();
             onAction(btn.dataset.action, btn);
+        });
+
+        // 表单输入变更（事件委托，绑定一次）
+        $('#editor-body').addEventListener('change', (e) => {
+            const t = e.target;
+            const coll = t.dataset && t.dataset.coll;
+            if (!coll) return;
+            writeField(coll, t);
         });
 
         document.addEventListener('keydown', (e) => {

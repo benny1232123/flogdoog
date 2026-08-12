@@ -991,6 +991,90 @@
 .sheet-foot .btn-ghost { flex: 1; min-width: 116px; }
 
 /* =========================================================
+   编辑内容后台（复用 .sheet 弹窗框架）
+   ========================================================= */
+.editor-panel { max-width: 580px; }
+.editor-head-actions { display: flex; align-items: center; gap: 10px; }
+.editor-head-actions .link-btn { font-size: .76rem; }
+.btn-edit { color: var(--rose); border-color: var(--rose-soft); }
+
+.editor-tabs {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin: 14px 0 6px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+}
+.editor-tab {
+    flex: 1; min-width: 60px; padding: 9px 6px;
+    font-size: .8rem; font-family: inherit;
+    border: none; background: none; color: var(--ink-3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+}
+.editor-tab.is-active { color: var(--rose); border-bottom-color: var(--rose); font-weight: 600; }
+
+.editor-body { padding: 8px 0 2px; }
+
+.ed-sec { display: flex; flex-direction: column; gap: 12px; }
+.ed-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ed-row { display: flex; flex-direction: column; gap: 5px; }
+.ed-label { font-size: .74rem; color: var(--ink-3); letter-spacing: .04em; }
+.ed-input {
+    width: 100%; padding: 9px 12px; font-size: .86rem; font-family: inherit;
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--cream-2) 55%, transparent);
+    color: var(--ink); outline: none; transition: border-color .25s;
+}
+.ed-input:focus { border-color: var(--rose-soft); }
+textarea.ed-input { resize: vertical; line-height: 1.6; }
+
+.ed-card, .ed-item {
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    background: color-mix(in srgb, var(--cream) 32%, transparent);
+}
+.ed-card-head { display: flex; align-items: center; gap: 12px; }
+.ed-av { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
+
+.ed-item-bar { display: flex; align-items: center; justify-content: space-between; }
+.ed-item-idx { font-size: .74rem; color: var(--ink-3); }
+.ed-del {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--line); background: transparent;
+    color: var(--rose); cursor: pointer; font-size: .76rem; line-height: 1;
+    transition: background .2s, color .2s;
+}
+.ed-del:hover { background: var(--rose); color: #fff; }
+
+.btn-add {
+    padding: 11px; border: 1px dashed var(--rose-soft);
+    border-radius: var(--r-md); background: transparent;
+    color: var(--rose); cursor: pointer; font-size: .84rem; font-family: inherit;
+    transition: background .2s;
+}
+.btn-add:hover { background: color-mix(in srgb, var(--rose) 8%, transparent); }
+
+.btn-mini {
+    align-self: flex-start; padding: 6px 12px; font-size: .74rem; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 999px;
+    background: var(--surface-solid); color: var(--ink-2); cursor: pointer;
+    transition: border-color .2s, color .2s;
+}
+.btn-mini:hover { border-color: var(--rose-soft); color: var(--rose); }
+
+.ed-sub { font-size: .76rem; color: var(--ink-3); margin-top: 4px; }
+.ed-empty { font-size: .8rem; color: var(--ink-3); text-align: center; padding: 8px; }
+.ed-tip {
+    font-size: .72rem; color: var(--ink-3); line-height: 1.6;
+    background: color-mix(in srgb, var(--cream-2) 50%, transparent);
+    padding: 9px 11px; border-radius: var(--r-sm);
+}
+.ed-photo-wrap { display: flex; flex-direction: column; gap: 6px; }
+.ed-photo { width: 100%; max-height: 150px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); }
+.ed-photo-ph { font-size: .74rem; color: var(--ink-3); padding: 12px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r-sm); }
+
+@media (max-width: 480px) { .ed-2col { grid-template-columns: 1fr; } }
+
+/* =========================================================
    响应式：移动端适配
    ========================================================= */
 @media (max-width: 900px) {
