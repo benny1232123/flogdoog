@@ -430,6 +430,14 @@ window.LP = (function () {
 
         $('#btn-lock').addEventListener('click', lockNow);
 
+        // 进入「编辑内容」后台（需先解锁，等同于已通过密码校验）
+        const editBtn = $('#btn-edit');
+        if (editBtn) editBtn.addEventListener('click', () => {
+            close();
+            if (LP.Editor) LP.Editor.open();
+            else toast('编辑器未加载');
+        });
+
         $('#btn-clear').addEventListener('click', () => {
             if (!confirm('确定要清空所有悄悄话吗？此操作无法撤销。')) return;
             store.del(LS.messages);
@@ -493,6 +501,12 @@ window.LP = (function () {
         const note = $('#footer-note');
         if (note) note.textContent = data.site.footerNote || '';
 
+        // 应用用户本地覆盖（自己编辑过的内容优先于 config.json 默认值）
+        if (LP.Editor) {
+            try { LP.Editor.applyOverlay(state.config); } catch (e) { console.warn('[LP] 应用本地覆盖失败：', e); }
+            try { await LP.Editor.resolveMediaRefs(state.config); } catch (e) { console.warn('[LP] 解析媒体引用失败：', e); }
+        }
+
         initLock(() => {
             LP.renderAll();
             startCounter();
@@ -508,6 +522,6 @@ window.LP = (function () {
     /* ---------------- 对外接口 ---------------- */
     return {
         LS, $, $$, store, esc, pad, parseDate, dayDiff, fmtDate, fmtRelTime,
-        state, toast, observeReveal, lazyImages
+        state, toast, observeReveal, lazyImages, startCounter
     };
 })();

@@ -255,6 +255,40 @@ window.LPMedia = (function () {
         return { saved, skipped, warnings };
     }
 
+    /* ---------------- 对外：以固定 id 存储一张图片（覆盖式） ----------------
+       供编辑器使用：头像 / 资料卡配图等需要可被反复替换且引用稳定。
+       @returns {Promise<{id:string, blob:Blob, w:number|null, h:number|null}>} */
+    async function putImage(id, file, meta) {
+        const r = await shrinkImage(file);
+        const rec = Object.assign({
+            id,
+            kind: 'image',
+            name: file.name || (id + '.jpg'),
+            mime: file.type || 'image/jpeg',
+            createdAt: Date.now(),
+            w: r.w,
+            h: r.h
+        }, meta || {});
+        rec.blob = r.blob;
+        rec.size = r.blob.size;
+        await put(rec);
+        return rec;
+    }
+
+    /* ---------------- 对外：把一条记录解析成可渲染的 ObjectURL ----------------
+       @returns {Promise<string|null>} */
+    async function urlOf(id) {
+        if (!id) return null;
+        try {
+            const rec = await get(id);
+            if (!rec || !rec.blob) return null;
+            return toURL(rec.blob);
+        } catch (e) {
+            console.warn('[LPMedia] 取媒体失败：', id, e);
+            return null;
+        }
+    }
+
     const stripExt = (n) => String(n || '').replace(/\.[^.]+$/, '').slice(0, 40);
 
     function fileDate(file) {
@@ -277,5 +311,5 @@ window.LPMedia = (function () {
         urls.clear();
     }
 
-    return { all, get, put, del, clear, addFiles, estimate, fmtSize, toURL, revokeAll };
+    return { all, get, put, del, clear, addFiles, putImage, urlOf, estimate, fmtSize, toURL, revokeAll };
 })();

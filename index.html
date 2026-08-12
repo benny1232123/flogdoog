@@ -319,9 +319,39 @@
             <div class="sheet-foot">
                 <button class="btn-ghost" id="btn-export">导出悄悄话</button>
                 <button class="btn-ghost btn-danger" id="btn-clear">清空悄悄话</button>
+                <button class="btn-ghost btn-edit" id="btn-edit">编辑内容</button>
                 <button class="btn-ghost" id="btn-lock">立即锁定</button>
             </div>
         </div>
+    </div>
+
+    <!-- ============ 编辑内容后台（解锁后可用，改动存本机 + 可导出） ============ -->
+    <div class="sheet editor-sheet" id="editor-sheet" aria-hidden="true">
+        <div class="sheet-panel editor-panel">
+            <div class="sheet-head">
+                <h3>编辑内容</h3>
+                <div class="editor-head-actions">
+                    <button class="link-btn" id="editor-export" type="button">导出备份</button>
+                    <button class="link-btn" id="editor-import" type="button">导入</button>
+                    <button class="icon-btn" id="editor-close" aria-label="关闭">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="editor-tabs" id="editor-tabs">
+                <button class="editor-tab is-active" data-tab="site" type="button">站点</button>
+                <button class="editor-tab" data-tab="couple" type="button">资料</button>
+                <button class="editor-tab" data-tab="anniv" type="button">纪念日</button>
+                <button class="editor-tab" data-tab="timeline" type="button">时间轴</button>
+                <button class="editor-tab" data-tab="wall" type="button">照片墙</button>
+            </div>
+            <div class="editor-body" id="editor-body"></div>
+            <div class="editor-foot">
+                <small class="editor-hint" id="editor-hint">改动自动保存在本机浏览器，可用「导出备份」在两台设备间搬运</small>
+                <button class="btn-primary" id="editor-done" type="button">完成</button>
+            </div>
+        </div>
+        <input type="file" id="editor-file-input" accept="application/json,.json" hidden>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -329,5 +359,6 @@
     <script src="js/media.js"></script>
     <script src="js/core.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/editor.js"></script>
 </body>
 </html>
