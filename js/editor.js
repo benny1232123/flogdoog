@@ -97,6 +97,9 @@
         state.config.anniversaries = clone(working.anniversaries);
         state.config.timeline = clone(working.timeline);
         state.config.gallery = clone(working.gallery);
+        // 同步在一起日期/时间 → couple（计时器 startCounter 从 couple.startDate 读）
+        if (working.site.startDate) state.config.couple.startDate = working.site.startDate;
+        if (working.site.startTime != null) state.config.couple.startTime = working.site.startTime;
         resolveMediaRefs(state.config).then(() => {
             applySiteChrome();
             if (LP.renderAll) LP.renderAll();
