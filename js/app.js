@@ -384,6 +384,9 @@
     }
 
     function initLightbox() {
+        const lb = $('#lightbox');
+        if (lb.dataset.lpInit) return;   // 防止重复渲染时重复绑定
+        lb.dataset.lpInit = '1';
         $('#lb-close').addEventListener('click', closeLightbox);
         $('#lb-prev').addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(-1); });
         $('#lb-next').addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(1); });
@@ -435,6 +438,8 @@
     function initUploader() {
         const wrap = $('#uploader');
         if (!wrap) return;
+        if (wrap.dataset.lpInit) return;   // 防止重复渲染时重复绑定
+        wrap.dataset.lpInit = '1';
 
         if (!window.LPMedia || !('indexedDB' in window)) {
             wrap.innerHTML = '<div class="uploader-off">当前浏览器不支持本地媒体存储，无法上传</div>';
