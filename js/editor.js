@@ -61,6 +61,11 @@
         };
     }
 
+    // 云端拉取后，用最新覆盖层重建编辑器工作副本，避免下次保存把远端改动覆盖掉
+    function loadWorkingFromConfig() {
+        working = getWorkingBase();
+    }
+
     /* ---------------- 供 core.js 启动调用 ---------------- */
     function applyOverlay(cfg) {
         const o = loadOverlay();
@@ -106,6 +111,14 @@
             if (LP.startCounter) LP.startCounter();
             if (LP.renderMessages) LP.renderMessages();
         });
+        // 云端同步（已配置则推送最新覆盖层）
+        if (LP.Sync && LP.Sync.isConfigured()) {
+            const obj = {
+                site: working.site, couple: working.couple,
+                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery
+            };
+            LP.Sync.push(obj).then((ok) => { if (ok) toast('已同步到云端'); });
+        }
     }
 
     function applySiteChrome() {
@@ -161,7 +174,17 @@
             </div>
             ${textRow('开启密码锁', 'site', null, 'passwordEnabled', s.passwordEnabled, { type: 'checkbox' })}
             <p class="ed-tip">提示：改了访问密码，下次锁定后就用新密码进入。</p>
+            <div class="ed-divider"></div>
+            <h4 class="ed-sub">云同步（多设备自动一致）</h4>
+            ${textRow('同步地址(Workers URL)', 'sync', null, 'endpoint', syncCfg().endpoint)}
+            ${textRow('同步密钥', 'sync', null, 'key', syncCfg().key, { type: 'password' })}
+            <button class="btn-mini" data-action="sync-now" type="button">立即同步</button>
+            <p class="ed-tip">在两台设备各填一次<strong>相同的地址和密钥</strong>，之后任一台改动会自动同步到另一台（站点解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。</p>
         </div>`;
+    }
+
+    function syncCfg() {
+        return (LP.Sync && LP.Sync.status) ? LP.Sync.status() : { endpoint: '', key: '' };
     }
 
     function renderCouple() {
@@ -359,6 +382,13 @@
             commit();
             return;
         }
+        if (coll === 'sync') {
+            const cur = syncCfg();
+            cur[f] = val;
+            const ok = LP.Sync.configure(cur.endpoint, cur.key);
+            toast(ok ? '同步配置已保存（本机）' : '请同时填写地址和密钥');
+            return;
+        }
         if (coll === 'partner' && f === 'tags') {
             working.couple.partners[+t.dataset.i].tags = String(val || '')
                 .split(/[、,，]/).map((s) => s.trim()).filter(Boolean);
@@ -376,6 +406,23 @@
 
     /* ---------------- 按钮动作 ---------------- */
     async function onAction(act, el) {
+        if (act === 'sync-now') {
+            if (!LP.Sync || !LP.Sync.isConfigured()) { toast('请先填写同步地址和密钥'); return; }
+            toast('正在同步…');
+            const remote = await LP.Sync.pull();
+            if (!remote) { toast('拉取失败，检查地址/密钥或网络'); return; }
+            try {
+                LP.Editor.applyOverlay(state.config);
+                await LP.Editor.resolveMediaRefs(state.config);
+                if (LP.renderAll) LP.renderAll();
+                if (LP.startCounter) LP.startCounter();
+                // 把刚刚拉到的远端数据刷新到编辑器工作副本，避免下次保存覆盖
+                loadWorkingFromConfig();
+                toast('已从云端同步');
+                renderTab();
+            } catch (e) { toast('同步应用失败'); }
+            return;
+        }
         if (act === 'anniv-add') {
             working.anniversaries.push({ title: '', date: todayStr(), type: 'annual', icon: 'heart', note: '', unit: '' });
             commit(); renderTab();

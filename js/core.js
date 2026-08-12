@@ -507,6 +507,18 @@ window.LP = (function () {
             try { await LP.Editor.resolveMediaRefs(state.config); } catch (e) { console.warn('[LP] 解析媒体引用失败：', e); }
         }
 
+        // 云同步（Cloudflare KV）：已配置则拉取远端覆盖层，覆盖本机后重新应用
+        if (LP.Sync && LP.Sync.isConfigured()) {
+            try {
+                const remote = await LP.Sync.pull();
+                if (remote) {
+                    LP.Editor.applyOverlay(state.config);
+                    await LP.Editor.resolveMediaRefs(state.config);
+                    console.info('[LP] 已从云端拉取最新内容');
+                }
+            } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
+        }
+
         initLock(() => {
             LP.renderAll();
             startCounter();

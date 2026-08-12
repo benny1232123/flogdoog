@@ -40,7 +40,11 @@
 ├─ js/
 │  ├─ media.js         # 上传存储层（IndexedDB + 压缩 + 视频封面）window.LPMedia
 │  ├─ core.js          # 框架层：配置加载、锁屏、主题、计时、滚动揭示
+│  ├─ sync.js          # 云端同步客户端（Cloudflare KV，可选）
 │  └─ app.js           # 业务层：渲染各模块 + 上传器 + 灯箱交互
+├─ worker/             # 云端同步后端（Cloudflare Worker + wrangler 配置，可选）
+│  ├─ sync.js
+│  └─ wrangler.toml
 ├─ data/
 │  └─ config.json      # ★ 唯一内容源：站点信息 / 双人 / 纪念日 / 时间轴 / 照片 / 留言
 ├─ assets/
@@ -166,7 +170,50 @@ server {
 
 ---
 
-## 八、常见问题
+## 八、云端同步后端（Cloudflare KV + Worker，多设备自动一致）
+
+站点本身是纯静态、无后端，所以「改了在另一台设备看不到」是预期行为。本项目内置了一套**可选的云同步**：用 Cloudflare KV 存一份共享覆盖层，两台设备都填同一个「同步地址 + 密钥」后，任一台改动会**自动同步**到另一台。
+
+### 同步范围（务必看清）
+
+| 内容 | 是否跨设备同步 |
+| --- | --- |
+| 站点信息、双人资料、纪念日、时间轴、照片墙**文案/结构** | ✅ 自动同步（存 KV） |
+| 上传的**照片 / 视频 / 头像原文件** | ❌ 仍存各设备本机 IndexedDB，不跨设备 |
+| 锁屏密码、主题 | ✅ 随站点信息同步 |
+
+> 照片原文件不进 KV 的原因：KV 单值上限 25MB，且把大图塞进 JSON 不划算。如需照片也共享，走第七节方案 C（对象存储 + 数据库）。
+
+### 你需要做的（一次性）
+
+**第 1 步：在 Cloudflare 建 KV 命名空间**
+- 登录 Cloudflare → **Workers & Pages → KV → 创建命名空间**，名字随意（如 `flogdoog-sync`）。
+- 记下它的 **命名空间 ID**。
+
+**第 2 步：部署 Worker（`worker/` 目录已备好）**
+- 装好 [wrangler](https://developers.cloudflare.com/workers/wrangler/install/)：`npm i -g wrangler`，登录 `wrangler login`。
+- 编辑 `worker/wrangler.toml`：
+  - 把 `id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"` 换成第 1 步的命名空间 ID；
+  - 把 `SYNC_KEY = "REPLACE_WITH_A_STRONG_SECRET"` 换成一个只有你们俩知道的强密钥（也可改成 `wrangler secret put SYNC_KEY`）。
+- 部署：`wrangler deploy`
+- 部署完会得到类似 `https://flogdoog-sync.<你的子域>.workers.dev` 的地址——这就是「同步地址」。
+
+**第 3 步：在站点里填同步配置**
+- 解锁网站 → 右上角 ⚙ → **编辑内容** → 站点 标签最底部「云同步」区。
+- 填：**同步地址** = 上面那个 `workers.dev` 地址；**同步密钥** = 第 2 步的 `SYNC_KEY`。
+- 点「立即同步」。两台设备各填一次**相同的**地址和密钥即可。
+
+### 工作机制
+- 启动时（`core.js`）若已配置，自动 `GET` 远端覆盖层并覆盖本机。
+- 编辑保存时（`editor.js` 的 `commit`）自动 `PUT` 最新覆盖层到 KV。
+- 最后写入覆盖（last-write-wins），适合两人站点；若两台同时改同一字段，后保存的赢。
+- 未配置云端时，站点**完全离线工作**，行为与之前一致，不依赖任何外部服务。
+
+> 国内访问 `workers.dev` 偶尔不稳（和 `pages.dev` 一样）。若同步经常失败，把 Worker 绑到你自己域名（Cloudflare 免费 SSL）即可稳定。
+
+---
+
+## 九、常见问题
 
 - **打开是白屏 / 锁屏进不去？** 确认用 `http://` 访问（不是双击文件）；密码在 `config.json` 的 `site.password`。
 - **上传的视频太大传不进去？** 单文件建议 < 60MB（超过会提示跳过）；可先在手机里压缩后再传。IndexedDB 容量跟随浏览器配额。
