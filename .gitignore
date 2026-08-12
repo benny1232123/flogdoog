@@ -15,3 +15,5 @@ our-planet.zip
 
 # 含密钥的 Worker 配置（明文 SYNC_KEY，禁止入库）
 worker/wrangler.toml
+# wrangler 缓存（含账户信息，不入库）
+worker/.wrangler/
