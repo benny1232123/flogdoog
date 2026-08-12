@@ -61,28 +61,29 @@
     50%      { transform: translateX(-50%) scale(1.13); opacity: 1; }
 }
 
-/* 青蛙 + 小狗 装饰形象（桌面端漂浮于 Hero 两侧，移动端隐藏避免遮挡） */
+/* 青蛙 + 小狗 装饰形象（桌面端漂浮于 Hero 上半部，移动端隐藏避免遮挡） */
 .mascots {
     position: absolute;
     inset: 0;
     z-index: 2;
     pointer-events: none;
+    overflow: hidden;
 }
 .mascot {
     position: absolute;
-    width: clamp(56px, 13vw, 96px);
+    width: clamp(52px, 11vw, 88px);
     height: auto;
-    opacity: .94;
-    filter: drop-shadow(0 12px 20px rgba(90, 70, 55, .18));
+    opacity .9;
+    filter: drop-shadow(0 10px 18px rgba(90, 70, 55, .15));
 }
 .mascot-frog {
-    left: max(4px, 1.5vw);
-    bottom: 220px;
+    left: max(6px, 2vw);
+    top: 100px;
     animation: floatY 5.4s var(--ease) infinite;
 }
 .mascot-dog {
-    right: max(4px, 1.5vw);
-    bottom: 200px;
+    right: max(6px, 2vw);
+    top: 120px;
     animation: floatY 6.1s var(--ease) infinite .6s;
 }
 @keyframes floatY {
