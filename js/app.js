@@ -970,6 +970,171 @@
     }
 
     /* =========================================================
+       模块 8 — 实时心情/状态（新增）
+       ========================================================= */
+    function renderMood() {
+        if (!LP.Mood) return;
+        var M = LP.Mood;
+        var data = M.load();
+        var bar = $('#mood-bar');
+        if (!bar) return;
+
+        var cpl = state.config.couple;
+        var nameA = (cpl && cpl.a && cpl.a.name) || '阿蛙';
+        var nameB = (cpl && cpl.b && cpl.b.name) || '阿狗';
+
+        // 当前心情展示
+        var curA = data.currentA, curB = data.currentB;
+        var timeA = curA ? fmtRelTime(new Date(curA.time)) : '';
+        var timeB = curB ? fmtRelTime(new Date(curB.time)) : '';
+
+        bar.innerHTML = '<div class="mood-title">💭 此刻心情</div>' +
+            '<div class="mood-pair">' +
+                '<div class="mood-person" data-who="a">' +
+                    '<span class="mood-name">' + esc(nameA) + '</span>' +
+                    (curA
+                        ? '<button class="mood-current" data-who="a" title="点击更换"><span class="mood-emoji">' + esc(curA.emoji) + '</span><span class="mood-label">' + esc(curA.label) + '</span></button>'
+                            + (curA.text ? '<p class="mood-text">' + esc(curA.text) + '</p>' : '')
+                            + '<small class="mood-time">' + timeA + '</small>'
+                        : '<button class="mood-set" data-who="a">设置心情</button>') +
+                '</div>' +
+                '<div class="mood-divider" aria-hidden="true">♥</div>' +
+                '<div class="mood-person" data-who="b">' +
+                    '<span class="mood-name">' + esc(nameB) + '</span>' +
+                    (curB
+                        ? '<button class="mood-current" data-who="b" title="点击更换"><span class="mood-emoji">' + esc(curB.emoji) + '</span><span class="mood-label">' + esc(curB.label) + '</span></button>'
+                            + (curB.text ? '<p class="mood-text">' + esc(curB.text) + '</p>' : '')
+                            + '<small class="mood-time">' + timeB + '</small>'
+                        : '<button class="mood-set" data-who="b">设置心情</button>') +
+                '</div>' +
+            '</div>' +
+            '<div class="mood-recent-hint" id="mood-recent-toggle">最近心情 <small>▼</small></div>' +
+            '<div class="mood-history" id="mood-history"></div>';
+
+        // 最近心情（默认折叠，最多10条）
+        renderMoodHistory(data);
+
+        // 绑定事件
+        bindMoodEvents(bar);
+    }
+
+    function renderMoodHistory(data) {
+        var histEl = $('#mood-history');
+        if (!histEl) return;
+        var recent = (data.history || []).slice(0, 10);
+        if (recent.length === 0) { histEl.innerHTML = '<p class="mood-empty">还没有心情记录</p>'; return; }
+        var cpl = state.config.couple;
+        var nameA = (cpl && cpl.a && cpl.a.name) || '阿蛙';
+        var nameB = (cpl && cpl.b && cpl.b.name) || '阿狗';
+
+        histEl.innerHTML = recent.map(function (entry) {
+            var whoName = entry.who === 'a' ? nameA : nameB;
+            return '<div class="mh-item">' +
+                '<span class="mh-who">' + esc(whoName) + '</span>' +
+                '<span class="mh-emoji">' + entry.emoji + '</span>' +
+                '<span class="mh-label">' + entry.label + '</span>' +
+                (entry.text ? '<span class="mh-text">' + esc(entry.text) + '</span>' : '') +
+                '<small class="mh-time">' + fmtRelTime(new Date(entry.time)) + '</small>' +
+            '</div>';
+        }).join('');
+    }
+
+    function bindMoodEvents(bar) {
+        // 点击当前心情 → 打开选择器
+        $$('.mood-current', bar).forEach(function (btn) {
+            btn.addEventListener('click', function () { showMoodPicker(this.dataset.who); });
+        });
+        // 设置心情按钮
+        $$('.mood-set', bar).forEach(function (btn) {
+            btn.addEventListener('click', function () { showMoodPicker(this.dataset.who); });
+        });
+
+        // 展开/收起最近记录
+        var toggle = $('#mood-recent-toggle');
+        if (toggle && !toggle._bound) {
+            toggle._bound = true;
+            toggle.addEventListener('click', function () {
+                var h = $('#mood-history');
+                if (h) { h.classList.toggle('is-open'); this.querySelector('small').textContent = h.classList.contains('is-open') ? '▲' : '▼'; }
+            });
+        }
+    }
+
+    function showMoodPicker(who) {
+        var M = LP.Mood;
+        var data = M.load();
+        var current = who === 'a' ? data.currentA : data.currentB;
+
+        var html = '<div class="sheet editor-sheet is-open" id="mood-picker-sheet" aria-hidden="false">';
+        html += '<div class="sheet-panel editor-panel"><div class="sheet-head">';
+        html += '<h3>设置心情</h3>';
+        html += '<button class="icon-btn mp-close-btn" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+        html += '</div><div class="editor-body"><div class="ed-group">';
+
+        // emoji 网格
+        html += '<div class="mood-grid">';
+        M.MOODS.forEach(function (m) {
+            var active = current && current.emoji === m.emoji ? ' is-active' : '';
+            html += '<button type="button" class="mood-opt' + active + '" data-emoji="' + m.emoji + '" data-label="' + m.label + '" style="--mc:' + m.color + '">' +
+                '<span class="mo-emoji">' + m.emoji + '</span><span class="mo-label">' + m.label + '</span></button>';
+        });
+        html += '</div>';
+
+        // 文字输入
+        html += '<label class="ed-row"><span class="ed-label">想说的话</span>';
+        html += '<textarea class="ed-input" id="mood-text-input" rows="2" placeholder="此刻在想什么…（可选）">' + (current ? esc(current.text || '') : '') + '</textarea></label>';
+
+        html += '</div></div><div class="editor-foot" style="display:flex;gap:8px;justify-content:center;">';
+        html += '<button class="btn-primary" id="mood-save-btn">保存</button>';
+        if (current) { html += '<button class="btn-ghost btn-danger" id="mood-clear-btn">清除</button>'; }
+        html += '</div></div></div>';
+
+        var old = document.getElementById('mood-picker-sheet');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        var sheet = wrap.firstElementChild;
+        document.body.appendChild(sheet);
+
+        var selectedEmoji = current ? current.emoji : '';
+        var selectedLabel = current ? current.label : '';
+
+        // emoji 选择
+        $$('.mood-opt', sheet).forEach(function (opt) {
+            opt.addEventListener('click', function () {
+                $$('.mood-opt', sheet).forEach(function (o) { o.classList.remove('is-active'); });
+                this.classList.add('is-active');
+                selectedEmoji = this.dataset.emoji;
+                selectedLabel = this.dataset.label;
+            });
+        });
+
+        // 保存
+        $('#mood-save-btn').addEventListener('click', function () {
+            if (!selectedEmoji) { toast('请选一个心情'); return; }
+            M.setMood(who, selectedEmoji, selectedLabel, $('#mood-text-input').value);
+            toast('心情已更新 ✓');
+            sheet.remove();
+            renderMood();
+        });
+
+        // 清除
+        var clearBtn = $('#mood-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                M.clearMood(who);
+                toast('已清除 ✓');
+                sheet.remove();
+                renderMood();
+            });
+        }
+
+        // 关闭
+        $('.mp-close-btn').addEventListener('click', function () { sheet.remove(); });
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -982,6 +1147,7 @@
         initUploader();
         renderWall().then(refreshStorageInfo);
         renderPeriod();
+        renderMood();
     }
 
     // 挂到 LP 上供 core.js 调用
