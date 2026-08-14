@@ -72,6 +72,7 @@
                 <a href="#period" class="nav-link" data-target="period">经期</a>
                 <a href="#schedule" class="nav-link" data-target="schedule">日程</a>
                 <a href="#rating" class="nav-link" data-target="rating">点评</a>
+                <a href="#resources" class="nav-link" data-target="resources">资料</a>
             </nav>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -345,6 +346,26 @@
             </div>
         </section>
 
+        <!-- ---------- 学术 / 资料库 ---------- -->
+        <section class="section" id="resources">
+            <div class="sec-head reveal">
+                <h2 class="sec-title">📚 资料库</h2>
+                <p class="sec-sub">分类整理 · 随时查阅</p>
+            </div>
+
+            <!-- 搜索 + 添加 -->
+            <div class="res-toolbar reveal">
+                <input type="text" id="res-search" class="sched-input" placeholder="搜索标题/标签/摘要…" maxlength="50">
+                <button class="btn-primary" id="res-add-btn" type="button">+ 新增</button>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="res-cats reveal" id="res-cats"></div>
+
+            <!-- 资料列表 -->
+            <div class="res-list" id="res-list"></div>
+        </section>
+
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
                 <svg viewBox="0 0 32 29"><path d="M16 28S1 18.5 1 9.8A8.8 8.8 0 0 1 16 4.4 8.8 8.8 0 0 1 31 9.8C31 18.5 16 28 16 28z"/></svg>
@@ -391,6 +412,10 @@
         <a href="#rating" class="tab" data-target="rating">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
             <span>点评</span>
+        </a>
+        <a href="#resources" class="tab" data-target="resources">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            <span>资料</span>
         </a>
     </nav>
 
@@ -494,6 +519,7 @@
     <script src="js/mood.js"></script>
     <script src="js/schedule.js"></script>
     <script src="js/rating.js"></script>
+    <script src="js/resources.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>
 </body>

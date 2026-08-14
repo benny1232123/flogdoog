@@ -1923,3 +1923,109 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .sb-score { font-size: 2rem; }
     .rev-add { margin: 0 8px 14px; padding: 12px; }
 }
+
+/* =========================================================
+   学术/资料库模块样式
+   ========================================================= */
+
+/* 工具栏 */
+.res-toolbar {
+    display: flex;
+    gap: 8px;
+    max-width: 500px;
+    margin: 0 auto 16px;
+}
+.res-toolbar .btn-primary { white-space: nowrap; }
+
+/* 分类标签 */
+.res-cats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+    max-width: 540px;
+    margin-left: auto; margin-right: auto;
+}
+.res-cat {
+    padding: 5px 14px;
+    border: 1.5px solid transparent;
+    border-radius: 16px;
+    background: transparent;
+    font-size: .8rem;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: all .15s;
+}
+.res-cat:hover { background: rgba(232,137,154,.06); }
+.res-cat.is-active {
+    background: rgba(232,137,154,.1);
+    border-color: rgba(232,137,154,.25);
+    font-weight: 600;
+}
+
+/* 资料卡片 */
+.res-card {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.06));
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    transition: box-shadow .15s;
+}
+.res-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+
+.res-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.res-cat-badge {
+    font-size: .72rem;
+    padding: 2px 8px;
+    background: rgba(107,142,35,.08);
+    color: #556B2F;
+    border-radius: 10px;
+}
+.res-date { font-size: .7rem; color: var(--ink-3); margin-left: auto; }
+
+.res-title {
+    font-size: .95rem;
+    font-weight: 600;
+    margin: 4px 0;
+    line-height: 1.4;
+}
+.res-title a { color: inherit; text-decoration: none; }
+.res-title a:hover { color: var(--accent); text-decoration: underline; }
+
+.res-abstract {
+    font-size: .82rem;
+    color: var(--ink-2);
+    line-height: 1.6;
+    margin: 4px 0;
+}
+
+.res-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.res-tag {
+    font-size: .72rem;
+    padding: 2px 8px;
+    background: rgba(100,140,200,.08);
+    color: #4A6FA5;
+    border-radius: 10px;
+}
+
+.res-link {
+    display: inline-block;
+    font-size: .78rem;
+    color: #4A90D9;
+    margin-top: 6px;
+    text-decoration: none;
+}
+.res-link:hover { text-decoration: underline; }
+
+@media (max-width: 520px) {
+    .res-toolbar { margin: 0 8px 14px; }
+    .res-cats { margin: 0 8px 12px; }
+    .res-card { padding: 12px; }
+}

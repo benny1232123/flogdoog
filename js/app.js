@@ -1572,6 +1572,168 @@
     }
 
     /* =========================================================
+       模块 11 — 学术/资料库（新增）
+       ========================================================= */
+    let currentResCat = ''; // '' = all
+
+    function renderResources() {
+        if (!LP.Resources) return;
+        var R = LP.Resources;
+
+        // 分类标签
+        var catsEl = $('#res-cats');
+        if (catsEl) {
+            catsEl.innerHTML = '<button class="res-cat is-active" data-rcat="" type="button">全部</button>' +
+                R.CATEGORIES.map(function (c) {
+                    return '<button class="res-cat" data-rcat="' + c.id + '" type="button">' + c.icon + ' ' + c.label + '</button>';
+                }).join('');
+
+            $$('.res-cat', catsEl).forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    $$('.res-cat', catsEl).forEach(function (b) { b.classList.remove('is-active'); });
+                    this.classList.add('is-active');
+                    currentResCat = this.dataset.rcat;
+                    renderResList();
+                });
+            });
+        }
+
+        // 资料列表
+        renderResList();
+
+        // 搜索 & 新增事件
+        bindResEvents();
+    }
+
+    function renderResList() {
+        var list = $('#res-list');
+        if (!list) return;
+        var R = LP.Resources;
+        var items = currentResCat ? R.getByCategory(currentResCat) : R.load().resources;
+
+        // 应用搜索过滤
+        var searchVal = ($('#res-search') || {}).value || '';
+        if (searchVal.trim()) items = R.search(searchVal.trim());
+
+        // 按日期倒序
+        items = items.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+        if (items.length === 0) {
+            list.innerHTML = '<p class="sched-empty">' + (currentResCat ? '这个分类还没有资料' : '资料库还是空的，点击「新增」添加第一条') + '</p>';
+            return;
+        }
+
+        var catMap = {};
+        R.CATEGORIES.forEach(function (c) { catMap[c.id] = c; });
+
+        list.innerHTML = items.map(function (r) {
+            var cat = catMap[r.category] || { icon: '📎', label: '其他' };
+            var tagsHtml = (r.tags && r.tags.length)
+                ? '<div class="res-tags">' + r.tags.map(function (t) { return '<span class="res-tag">' + esc(t) + '</span>'; }).join('') + '</div>'
+                : '';
+            var abstractHtml = r.abstract ? '<p class="res-abstract">' + esc(r.abstract) + '</p>' : '';
+            var urlHtml = r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="res-link">打开链接 ↗</a>' : '';
+
+            return '<div class="res-card" data-id="' + r.id + '">' +
+                '<div class="res-head">' +
+                    '<span class="res-cat-badge">' + cat.icon + ' ' + cat.label + '</span>' +
+                    '<span class="res-date">' + (r.date ? r.date.slice(0,10) : '') + '</span>' +
+                    '<button class="link-btn sched-del res-del" data-id="' + r.id + '">✕</button>' +
+                '</div>' +
+                '<h4 class="res-title">' + (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a>' : esc(r.title)) + '</h4>' +
+                abstractHtml + tagsHtml + urlHtml +
+            '</div>';
+        }).join('');
+
+        $$('.res-del', list).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                LP.Resources.delResource(this.dataset.id);
+                toast('已删除');
+                renderResources();
+            });
+        });
+    }
+
+    function bindResEvents() {
+        // 搜索
+        var searchInput = $('#res-search');
+        if (searchInput && !searchInput._bound) {
+            searchInput._bound = true;
+            var searchTimer = null;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(renderResList, 250);
+            });
+        }
+
+        // 新增按钮
+        var addBtn = $('#res-add-btn');
+        if (addBtn && !addBtn._bound) {
+            addBtn._bound = true;
+            addBtn.addEventListener('click', showAddResource);
+        }
+    }
+
+    function showAddResource() {
+        var R = LP.Resources;
+        var html = '<div class="sheet editor-sheet is-open" id="res-add-sheet">';
+        html += '<div class="sheet-panel editor-panel"><div class="sheet-head">';
+        html += '<h3>新增资料</h3>';
+        html += '<button class="icon-btn ra-close-btn" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+        html += '</div><div class="editor-body"><div class="ed-group">';
+
+        html += '<label class="ed-row"><span class="ed-label">标题 *</span>';
+        html += '<input type="text" class="ed-input" id="res-title" placeholder="论文名/书名/笔记标题…" maxlength="100"></label>';
+
+        html += '<label class="ed-row"><span class="ed-label">链接（可选）</span>';
+        html += '<input type="url" class="ed-input" id="res-url" placeholder="https://…"></label>';
+
+        html += '<div class="ed-row"><span class="ed-label">分类</span>';
+        html += '<select class="ed-input" id="res-category">';
+        R.CATEGORIES.forEach(function (c) { html += '<option value="' + c.id + '">' + c.icon + ' ' + c.label + '</option>'; });
+        html += '</select></div>';
+
+        html += '<label class="ed-row"><span class="ed-label">摘要</span>';
+        html += '<textarea class="ed-input" id="res-abstract" rows="3" placeholder="简要描述…"></textarea></label>';
+
+        html += '<div class="ed-row"><span class="ed-label">标签（逗号分隔）</span>';
+        html += '<input type="text" class="ed-input" id="res-tags" placeholder="机器学习, 论文, 2024"></div>';
+
+        html += '</div></div><div class="editor-foot" style="text-align:center;">';
+        html += '<button class="btn-primary" id="res-save-btn">保存</button>';
+        html += '</div></div></div>';
+
+        var old = document.getElementById('res-add-sheet');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        var sheet = wrap.firstElementChild;
+        document.body.appendChild(sheet);
+
+        $('#res-save-btn').addEventListener('click', function () {
+            var title = ($('#res-title').value || '').trim();
+            if (!title) { toast('请填写标题'); $('#res-title').focus(); return; }
+            var tagStr = ($('#res-tags').value || '').trim();
+            var tags = tagStr ? tagStr.split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean) : [];
+
+            R.addResource({
+                title: title,
+                url: ($('#res-url').value || '').trim() || undefined,
+                category: $('#res-category').value,
+                abstract: ($('#res-abstract').value || '').trim(),
+                tags: tags
+            });
+
+            toast('已保存 ✓');
+            sheet.remove();
+            renderResources();
+        });
+
+        $('.ra-close-btn').addEventListener('click', function () { sheet.remove(); });
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -1587,6 +1749,7 @@
         renderMood();
         renderSchedule();
         renderRating();
+        renderResources();
     }
 
     // 挂到 LP 上供 core.js 调用
