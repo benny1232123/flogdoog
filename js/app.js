@@ -1135,6 +1135,224 @@
     }
 
     /* =========================================================
+       模块 9 — 日程/待办/购物/日历（新增）
+       ========================================================= */
+    let schedCalYear, schedCalMonth;
+
+    function renderSchedule() {
+        if (!LP.Schedule) return;
+        var S = LP.Schedule;
+
+        // 待办面板
+        renderSchedPanel('todo', S.getPending('todo').concat(S.load().events.filter(function (e) { return e.type === 'todo' && e.done; })));
+
+        // 购物面板
+        renderSchedPanel('shopping', S.getPending('shopping').concat(S.load().events.filter(function (e) { return e.type === 'shopping' && e.done; })));
+
+        // 日历面板
+        renderSchedCalendar();
+
+        // 绑定事件
+        bindSchedEvents();
+    }
+
+    function renderSchedPanel(type, items) {
+        var panel = $('#sched-panel-' + type);
+        if (!panel) return;
+        var typeInfo = S.TYPES[type] || S.TYPES.todo;
+
+        if (items.length === 0) {
+            panel.innerHTML = '<p class="sched-empty">还没有' + typeInfo.label + '，在上方添加吧</p>';
+            return;
+        }
+
+        panel.innerHTML = '<ul class="sched-list">' + items.map(function (item) {
+            var cls = 'sched-item' + (item.done ? ' is-done' : '');
+            var whoTag = item.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
+                : item.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
+            var dateTag = item.date ? '<small class="sched-date">' + item.date + '</small>' : '';
+            return '<li class="' + cls + '" data-id="' + item.id + '">' +
+                '<label class="sched-check"><input type="checkbox"' + (item.done ? ' checked' : '') + ' data-id="' + item.id + '"><span></span></label>' +
+                '<span class="sched-title">' + esc(item.title) + '</span>' +
+                whoTag + dateTag +
+                '<button class="link-btn sched-del" data-id="' + item.id + '">✕</button>' +
+            '</li>';
+        }).join('') + '</ul>';
+
+        // 勾选完成
+        $$('input[type="checkbox"]', panel).forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                S.toggleDone(this.dataset.id);
+                toast(this.checked ? '已完成 ✓' : '已恢复');
+                renderSchedule();
+            });
+        });
+        // 删除
+        $$('.sched-del', panel).forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                S.delItem(this.dataset.id);
+                toast('已删除');
+                renderSchedule();
+            });
+        });
+    }
+
+    function renderSchedCalendar() {
+        var panel = $('#sched-panel-calendar');
+        if (!panel) return;
+        var S = LP.Schedule;
+        var now = new Date();
+        if (schedCalYear == null) { schedCalYear = now.getFullYear(); schedCalMonth = now.getMonth(); }
+        var eventMap = S.getEventsByDateMap();
+
+        // 也合并经期数据
+        var periodData = LP.Period ? LP.Period.load() : null;
+        if (periodData) {
+            periodData.records.forEach(function (r) {
+                var s = LP.Period._parseISO(r.startDate), e = LP.Period._parseISO(r.endDate || r.startDate);
+                if (s && e) { var c = new Date(s); while (c <= e) { var k = LP.Period._fmtISO(c); if (!eventMap[k]) eventMap[k] = [{ _period: true, flow: r.flow }]; c.setDate(c.getDate() + 1); } }
+            });
+        }
+
+        var dowNames = ['日', '一', '二', '三', '四', '五', '六'];
+        var firstDay = new Date(schedCalYear, schedCalMonth, 1);
+        var lastDay = new Date(schedCalYear, schedCalMonth + 1, 0);
+        var startDow = firstDay.getDay();
+        var daysInMonth = lastDay.getDate();
+        var today = new Date(); today.setHours(0,0,0,0);
+        var todayISO = schedCalYear + '-' + String(schedCalMonth+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+        var html = '<div class="sched-cal-nav">';
+        html += '<button class="cal-nav" id="sc-prev" type="button">‹</button>';
+        html += '<span class="cal-month">' + schedCalYear + '年' + (schedCalMonth + 1) + '月</span>';
+        html += '<button class="cal-nav" id="sc-next" type="button">›</button>';
+        html += '<button class="btn-ghost cal-today" id="sc-today" type="button">今天</button>';
+        html += '</div>';
+
+        html += '<div class="cal-dow">' + dowNames.map(function (d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
+
+        var weeks = [], week = [];
+        for (var i = 0; i < startDow; i++) week.push(null);
+        for (var d = 1; d <= daysInMonth; d++) {
+            var iso = schedCalYear + '-' + String(schedCalMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+            var evts = eventMap[iso] || [];
+            var hasPeriod = evts.some(function (e) { return e._period; });
+            var hasEvent = evts.some(function (e) { return !e._period; });
+            var isToday = iso === (S._fmtISO(today));
+            var cls = 'cal-day';
+            if (isToday) cls += ' is-today';
+            if (hasPeriod) cls += ' is-period';
+            if (hasEvent) cls += ' has-event';
+
+            var dotHtml = '';
+            if (hasEvent) dotHtml += '<i class="dot-dot"></i>';
+            week.push('<button class="' + cls + '" data-iso="' + iso + '" type="button">' + d + dotHtml + '</button>');
+            if (week.length === 7) { weeks.push(week); week = []; }
+        }
+        if (week.length > 0) { while (week.length < 7) week.push(null); weeks.push(week); }
+
+        weeks.forEach(function (w) {
+            html += '<div class="cal-week">' + w.join('') + '</div>';
+        });
+
+        // 当日事件详情
+        html += '<div class="sc-day-events" id="sc-day-events"><p class="sched-empty">点击日期查看事件</p></div>';
+
+        panel.innerHTML = html;
+
+        // 日历事件
+        $$('#sc-prev')[0] && ($('#sc-prev').onclick = function () { schedCalMonth--; if (schedCalMonth<0){schedCalMonth=11;schedCalYear--;} renderSchedule(); });
+        $$('#sc-next')[0] && ($('#sc-next').onclick = function () { schedCalMonth++; if (schedCalMonth>11){schedCalMonth=0;schedCalYear++;} renderSchedule(); });
+        $$('#sc-today')[0] && ($('#sc-today').onclick = function () { var n=new Date(); schedCalYear=n.getFullYear(); schedCalMonth=n.getMonth(); renderSchedule(); });
+
+        // 点击日期
+        $$('.cal-day:not(.cal-empty)', panel).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                showDayEvents(this.dataset.iso, eventMap);
+            });
+        });
+    }
+
+    function showDayEvents(iso, eventMap) {
+        var el = $('#sc-day-events');
+        if (!el) return;
+        var evts = (eventMap[iso] || []).filter(function (e) { return !e._period; });
+
+        if (evts.length === 0) {
+            el.innerHTML = '<p class="sched-empty">' + iso + ' 没有安排</p>' +
+                '<button class="btn-ghost sc-add-day" data-iso="' + iso + '">为这天添加</button>';
+            $('.sc-add-day', el).addEventListener('click', function () {
+                $('#sched-input').value = '';
+                $('#sched-type').value = 'todo';
+                $('#sched-input').dataset.prefillDate = this.dataset.iso;
+                $('#sched-input').focus();
+            });
+            return;
+        }
+
+        el.innerHTML = '<h4 class="sc-de-title">' + iso + '</h4>' +
+            '<ul class="sched-list">' + evts.map(function (item) {
+                var doneCls = item.done ? ' is-done' : '';
+                return '<li class="sched-item' + doneCls + '" data-id="' + item.id + '">' +
+                    '<span class="sched-title">' + esc(item.title) + '</span>' +
+                    (item.time ? '<small class="sched-time">' + item.time + '</small>' : '') +
+                    '<button class="link-btn sched-del" data-id="' + item.id + '">✕</button>' +
+                '</li>';
+            }).join('') + '</ul>';
+
+        $$('.sched-del', el).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                LP.Schedule.delItem(this.dataset.id);
+                renderSchedule();
+            });
+        });
+    }
+
+    function bindSchedEvents() {
+        var input = $('#sched-input');
+        var addBtn = $('#sched-add-btn');
+        var typeSel = $('#sched-type');
+
+        if (addBtn && !addBtn._bound) {
+            addBtn._bound = true;
+            addBtn.addEventListener('click', function () {
+                var title = (input.value || '').trim();
+                if (!title) { toast('写点什么吧'); input.focus(); return; }
+                var item = {
+                    type: typeSel.value,
+                    title: title,
+                    date: input.dataset.prefillDate || LP.Schedule._fmtISO(new Date())
+                };
+                LP.Schedule.addItem(item);
+                input.value = '';
+                delete input.dataset.prefillDate;
+                toast('已添加 ✓');
+                renderSchedule();
+            });
+
+            // 回车添加
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+            });
+        }
+
+        // 标签页切换
+        $$('.sched-tab').forEach(function (tab) {
+            if (tab._bound) return;
+            tab._bound = true;
+            tab.addEventListener('click', function () {
+                $$('.sched-tab').forEach(function (t) { t.classList.remove('is-active'); });
+                this.classList.add('is-active');
+                var target = this.dataset.stab;
+                $$('.sched-panel').forEach(function (p) { p.style.display = 'none'; });
+                var panel = $('#sched-panel-' + target);
+                if (panel) panel.style.display = '';
+            });
+        });
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -1148,6 +1366,7 @@
         renderWall().then(refreshStorageInfo);
         renderPeriod();
         renderMood();
+        renderSchedule();
     }
 
     // 挂到 LP 上供 core.js 调用

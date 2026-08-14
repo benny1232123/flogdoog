@@ -1599,3 +1599,183 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .mood-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .mood-opt { padding: 8px 4px; }
 }
+
+/* =========================================================
+   日程/待办/购物/日历模块样式
+   ========================================================= */
+
+/* 快捷添加 */
+.sched-quick {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-width: 520px;
+    margin-left: auto; margin-right: auto;
+}
+.sched-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 12px;
+    font-size: .9rem;
+    background: var(--surface-solid, #fff);
+    outline: none;
+    transition: border-color .15s;
+}
+.sched-input:focus { border-color: var(--accent, #e8899a); }
+.sched-type-select {
+    padding: 10px 8px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 12px;
+    font-size: .84rem;
+    background: var(--surface-solid, #fff);
+    color: var(--ink-1);
+}
+.sched-quick .btn-primary { white-space: nowrap; padding: 10px 20px; }
+
+/* 标签页 */
+.sched-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 16px;
+    max-width: 520px;
+    margin-left: auto; margin-right: auto;
+}
+.sched-tab {
+    padding: 7px 18px;
+    border: 1.5px solid transparent;
+    border-radius: 20px;
+    background: transparent;
+    font-size: .84rem;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: all .15s;
+}
+.sched-tab:hover { background: rgba(232,137,154,.06); }
+.sched-tab.is-active {
+    background: rgba(232,137,154,.1);
+    border-color: rgba(232,137,154,.3);
+    color: var(--ink-1);
+    font-weight: 600;
+}
+
+/* 面板 */
+.sched-panel {
+    max-width: 520px;
+    margin: 0 auto;
+}
+.sched-empty {
+    text-align: center;
+    color: var(--ink-3);
+    font-size: .84rem;
+    padding: 28px 16px;
+}
+
+/* 列表 */
+.sched-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sched-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,0,0,.04);
+    transition: opacity .15s;
+}
+.sched-item.is-done { opacity: .45; }
+.sched-item.is-done .sched-title { text-decoration: line-through; }
+
+/* 勾选框 */
+.sched-check {
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.sched-check input { display: none; }
+.sched-check span {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border, rgba(0,0,0,.2));
+    border-radius: 6px;
+    display: block;
+    transition: all .15s;
+}
+.sched-check input:checked + span {
+    background: var(--accent, #e8899a);
+    border-color: var(--accent, #e8899a);
+}
+.sched-check input:checked + span::after {
+    content: '✓';
+    position: absolute;
+    color: #fff;
+    font-size: 13px;
+    left: 5px; top: 1px;
+}
+
+.sched-title {
+    flex: 1;
+    font-size: .88rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sched-who { font-size: .9rem; }
+.who-a { /* frog */ } .who-b { /* dog */ }
+.sched-date, .sched-time {
+    font-size: .72rem;
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+.sched-del {
+    font-size: .82rem;
+    padding: 2px 6px;
+    opacity: 0;
+    transition: opacity .15s;
+}
+.sched-item:hover .sched-del { opacity: .6; }
+.sched-del:hover { opacity: 1 !important; }
+
+/* 日历导航 */
+.sched-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* 日历事件标记 */
+.cal-day.has-event { position: relative; }
+.dot-dot::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent, #e8899a);
+}
+
+/* 当日事件详情 */
+.sc-day-events {
+    margin-top: 14px;
+    padding: 12px;
+    background: rgba(232,137,154,.04);
+    border-radius: 12px;
+    min-height: 48px;
+}
+.sc-de-title { margin: 0 0 8px; font-size: .92rem; }
+.sc-add-day { display: block; margin: 8px auto 0; font-size: .82rem; }
+
+@media (max-width: 520px) {
+    .sched-quick { flex-wrap: wrap; margin: 0 8px 14px; }
+    .sched-input { min-width: 0; flex: 1 1 100%; order: 1; }
+    .sched-type-select { order: 2; flex: 1; }
+    .sched-quick .btn-primary { order: 3; flex: 1; }
+}

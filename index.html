@@ -70,6 +70,7 @@
                 <a href="#wall" class="nav-link" data-target="wall">照片墙</a>
                 <a href="#board" class="nav-link" data-target="board">留言板</a>
                 <a href="#period" class="nav-link" data-target="period">经期</a>
+                <a href="#schedule" class="nav-link" data-target="schedule">日程</a>
             </nav>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -269,6 +270,42 @@
             </div>
         </section>
 
+        <!-- ---------- 日程 / 待办 / 购物 ---------- -->
+        <section class="section" id="schedule">
+            <div class="sec-head reveal">
+                <h2 class="sec-title">📅 日程</h2>
+                <p class="sec-sub">待办 · 约会 · 购物 · 提醒</p>
+            </div>
+
+            <!-- 快捷添加 -->
+            <div class="sched-quick reveal">
+                <input type="text" id="sched-input" class="sched-input" placeholder="加一条待办/购物/约会…" maxlength="100">
+                <select id="sched-type" class="sched-type-select">
+                    <option value="todo">待办</option>
+                    <option value="shopping">购物</option>
+                    <option value="date">💕 约会</option>
+                    <option value="reminder">提醒</option>
+                </select>
+                <button class="btn-primary" id="sched-add-btn" type="button">添加</button>
+            </div>
+
+            <!-- 标签页：待办 | 购物 | 日历 -->
+            <div class="sched-tabs reveal">
+                <button class="sched-tab is-active" data-stab="todo" type="button">☐ 待办</button>
+                <button class="sched-tab" data-stab="shopping" type="button">🛒 购物</button>
+                <button class="sched-tab" data-stab="calendar" type="button">📆 日历</button>
+            </div>
+
+            <!-- 待办列表 -->
+            <div class="sched-panel" id="sched-panel-todo"></div>
+
+            <!-- 购物清单 -->
+            <div class="sched-panel" id="sched-panel-shopping" style="display:none"></div>
+
+            <!-- 日历视图 -->
+            <div class="sched-panel" id="sched-panel-calendar" style="display:none"></div>
+        </section>
+
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
                 <svg viewBox="0 0 32 29"><path d="M16 28S1 18.5 1 9.8A8.8 8.8 0 0 1 16 4.4 8.8 8.8 0 0 1 31 9.8C31 18.5 16 28 16 28z"/></svg>
@@ -307,6 +344,10 @@
         <a href="#period" class="tab" data-target="period">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
             <span>经期</span>
+        </a>
+        <a href="#schedule" class="tab" data-target="schedule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+            <span>日程</span>
         </a>
     </nav>
 
@@ -408,6 +449,7 @@
     <script src="js/sync.js"></script>
     <script src="js/period.js"></script>
     <script src="js/mood.js"></script>
+    <script src="js/schedule.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>
 </body>
