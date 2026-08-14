@@ -372,18 +372,40 @@
         <section class="section" id="footprint">
             <div class="sec-head reveal">
                 <h2 class="sec-title">🗺️ 我们的足迹</h2>
-                <p class="sec-sub">去过的地方 · 打卡记录</p>
+                <p class="sec-sub">去过的地方 · 在地图上点亮每一个省份</p>
             </div>
 
             <!-- 统计 -->
             <div class="fp-stats reveal" id="fp-stats"></div>
 
+            <!-- 中国地图 -->
+            <div class="fp-map-wrap reveal">
+                <div class="fp-map" id="fp-map"></div>
+                <p class="fp-map-hint">点击亮起（粉色）的省份可筛选该省的足迹 · 共 <b id="fp-prov-total">34</b> 个省级行政区</p>
+            </div>
+
             <!-- 快捷打卡 -->
             <div class="fp-add reveal">
-                <input type="text" id="fp-name-input" class="sched-input" placeholder="地名 / 店名 / 景点…" maxlength="50">
-                <input type="date" id="fp-date-input" class="sched-type-select">
-                <button class="btn-primary" id="fp-checkin-btn" type="button">📍 打卡</button>
+                <div class="fp-add-row">
+                    <input type="text" id="fp-name-input" class="sched-input" placeholder="地名 / 店名 / 景点…" maxlength="50">
+                    <input type="date" id="fp-date-input" class="sched-type-select">
+                </div>
+                <div class="fp-add-row">
+                    <select id="fp-province-input" class="sched-type-select"><option value="">省份 / 地区…</option></select>
+                    <select id="fp-who-input" class="sched-type-select">
+                        <option value="">一起 💞</option>
+                        <option value="a">阿蛙 🐸</option>
+                        <option value="b">阿狗 🐕</option>
+                    </select>
+                </div>
+                <div class="fp-add-row">
+                    <input type="text" id="fp-note-input" class="sched-input" placeholder="备注（可选）：和谁、吃了啥、心情…" maxlength="80">
+                    <button class="btn-primary" id="fp-checkin-btn" type="button">📍 打卡</button>
+                </div>
             </div>
+
+            <!-- 筛选条 -->
+            <div class="fp-filter-bar" id="fp-filter-bar"></div>
 
             <!-- 搜索 -->
             <div class="res-toolbar reveal" style="margin-bottom:12px;">
@@ -614,6 +636,7 @@
     <script src="js/rating.js"></script>
     <script src="js/resources.js"></script>
     <script src="js/footprint.js"></script>
+    <script src="js/china-map.js"></script>
     <script src="js/room.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>

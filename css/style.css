@@ -2063,15 +2063,130 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     margin-top: 4px;
 }
 
+/* 中国地图 */
+.fp-map-wrap { max-width: 600px; margin: 0 auto 22px; }
+.fp-map {
+    position: relative;
+    background: linear-gradient(160deg, #FBFCFF 0%, #EEF4FB 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 14px 10px 8px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+.china-svg { display: block; width: 100%; height: auto; }
+
+.china-prov {
+    fill: #E5DFE7;
+    stroke: #FFFFFF;
+    stroke-width: 0.5;
+    cursor: default;
+    transition: fill .25s var(--ease), opacity .25s var(--ease);
+}
+.china-prov:hover { fill: #D6CEDC; }
+.china-prov.is-visited {
+    fill: var(--rose);
+    cursor: pointer;
+}
+.china-prov.is-visited:hover { fill: var(--rose-deep); }
+.china-prov.is-active {
+    fill: var(--rose-deep);
+    stroke: var(--ink);
+    stroke-width: 1.1;
+}
+
+.china-pin { cursor: pointer; }
+.pin-dot {
+    fill: var(--rose-deep);
+    stroke: #fff;
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pinPulse 2.6s ease-in-out infinite;
+}
+.china-pin.is-active .pin-dot { fill: var(--rose); stroke: var(--ink); }
+.pin-num {
+    fill: #fff;
+    font-size: 7px;
+    font-weight: 700;
+    text-anchor: middle;
+    pointer-events: none;
+}
+@keyframes pinPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.22); }
+}
+
+.fp-map-hint {
+    text-align: center;
+    font-size: .74rem;
+    color: var(--ink-3);
+    margin: 10px 4px 0;
+    letter-spacing: .03em;
+}
+.fp-map-hint b { color: var(--rose-deep); font-weight: 700; }
+
 /* 打卡输入 */
 .fp-add {
     display: flex;
+    flex-direction: column;
     gap: 8px;
     max-width: 480px;
-    margin: 0 auto 16px;
-    align-items: center;
+    margin: 0 auto 14px;
 }
-.fp-add .btn-primary { white-space: nowrap; }
+.fp-add-row { display: flex; gap: 8px; }
+.fp-add-row .sched-input,
+.fp-add-row .sched-type-select { flex: 1; min-width: 0; }
+.fp-add .btn-primary { white-space: nowrap; flex: 0 0 auto; }
+
+/* 筛选条 */
+.fp-filter-bar { max-width: 540px; margin: 0 auto 12px; }
+.fp-filter-bar:empty { display: none; }
+.fp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--rose) 14%, var(--surface-solid));
+    border: 1px solid var(--line-strong);
+    color: var(--rose-deep);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+    font-size: .82rem;
+    font-weight: 600;
+}
+.fp-chip-x {
+    border: none;
+    background: var(--rose);
+    color: #fff;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: .7rem;
+    line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* 卡片上的省份标签 + 可点击联动 */
+.fp-prov-tag {
+    display: inline-block;
+    font-size: .68rem;
+    color: var(--rose-deep);
+    background: color-mix(in srgb, var(--rose) 12%, transparent);
+    border-radius: 6px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+.fp-card-link { cursor: pointer; }
+.fp-card-link:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+
+/* 夜间：地图配色 */
+body[data-theme="dark"] .fp-map {
+    background: linear-gradient(160deg, #1F2730 0%, #161C24 100%);
+}
+body[data-theme="dark"] .china-prov { fill: #3A2F37; stroke: #2A2228; }
+body[data-theme="dark"] .china-prov:hover { fill: #4A3C45; }
+body[data-theme="dark"] .china-prov.is-visited { fill: var(--rose); }
+body[data-theme="dark"] .china-prov.is-visited:hover { fill: var(--rose-deep); }
 
 /* 足迹卡片 */
 .fp-list { max-width: 540px; margin: 0 auto; }
@@ -2124,7 +2239,11 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 }
 
 @media (max-width: 520px) {
-    .fp-add { flex-wrap: wrap; margin: 0 8px 14px; }
+    .fp-add { margin: 0 8px 14px; }
+    .fp-add-row { flex-wrap: wrap; }
+    .fp-add-row .sched-input,
+    .fp-add-row .sched-type-select { flex: 1 1 100%; }
+    .fp-add .btn-primary { flex: 1 1 100%; }
     .fp-stat-cards { gap: 8px; }
     .fp-stat { padding: 12px 16px; }
     .fp-stat-num { font-size: 1.6rem; }

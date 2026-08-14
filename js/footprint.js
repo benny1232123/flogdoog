@@ -11,7 +11,8 @@
 
     function getDefaultData() {
         return {
-            places: []  // [{ id, name, date, note, lat?, lng?, who, createdAt }]
+            // 每条打卡：{ id, name, date, province?, who?, note?, lat?, lng?, createdAt }
+            places: []
         };
     }
 
@@ -77,8 +78,16 @@
     function getStats() {
         var places = load().places;
         var uniqueNames = {};
-        places.forEach(function (p) { uniqueNames[p.name] = true; });
-        return { total: places.length, unique: Object.keys(uniqueNames).length };
+        var provinces = {};
+        places.forEach(function (p) {
+            uniqueNames[p.name] = true;
+            if (p.province) provinces[p.province] = true;
+        });
+        return {
+            total: places.length,
+            unique: Object.keys(uniqueNames).length,
+            provinces: Object.keys(provinces).length
+        };
     }
 
     function exportData() { return load(); }
