@@ -1755,13 +1755,13 @@
         if (dateInput && !dateInput.value) dateInput.value = FP._fmtISO ? FP._fmtISO(new Date()) : new Date().toISOString().slice(0,10);
 
         // 列表
-        renderFpList();
+        renderFpList(FP);
 
         // 事件
-        bindFpEvents();
+        bindFpEvents(FP);
     }
 
-    function renderFpList() {
+    function renderFpList(FP) {
         var list = $('#fp-list');
         if (!list) return;
         var items = FP.getAll();
@@ -1802,7 +1802,7 @@
         });
     }
 
-    function bindFpEvents() {
+    function bindFpEvents(FP) {
         // 打卡按钮
         var checkinBtn = $('#fp-checkin-btn');
         if (checkinBtn && !checkinBtn._bound) {
@@ -1830,7 +1830,7 @@
             var fpTimer = null;
             searchInput.addEventListener('input', function () {
                 clearTimeout(fpTimer);
-                fpTimer = setTimeout(renderFpList, 250);
+                fpTimer = setTimeout(function () { renderFpList(FP); }, 250);
             });
         }
     }
