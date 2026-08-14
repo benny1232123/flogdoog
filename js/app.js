@@ -1032,14 +1032,66 @@
                         : '<button class="mood-set" data-who="b">设置心情</button>') +
                 '</div>' +
             '</div>' +
+            '<div class="mood-trend" id="mood-trend"></div>' +
             '<div class="mood-recent-hint" id="mood-recent-toggle">最近心情 <small>▼</small></div>' +
             '<div class="mood-history" id="mood-history"></div>';
+
+        // 趋势热力图（情绪分布 + 近 12 周活跃度）
+        renderMoodTrend(M, data);
 
         // 最近心情（默认折叠，最多10条）
         renderMoodHistory(data);
 
         // 绑定事件
         bindMoodEvents(bar);
+    }
+
+    function renderMoodTrend(M, data) {
+        var el = $('#mood-trend');
+        if (!el) return;
+        var agg = M.getAggregates(data);
+        var colorOf = {};
+        M.MOODS.forEach(function (m) { colorOf[m.emoji] = m.color; });
+
+        // 情绪分布 TOP
+        var distEntries = Object.keys(agg.dist).map(function (k) { return { emoji: k, n: agg.dist[k] }; })
+            .sort(function (a, b) { return b.n - a.n; });
+        var chips = distEntries.slice(0, 6).map(function (e) {
+            return '<span class="mood-chip" style="--mc:' + (colorOf[e.emoji] || '#e8899a') + '">' + e.emoji + ' ' + e.n + '</span>';
+        }).join('');
+
+        // 近 13 周热力图（周日起算）
+        function moodKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var start = new Date(today); start.setDate(start.getDate() - start.getDay() - 12 * 7); // 13 周前那个周日
+        var weeks = [];
+        for (var w = 0; w < 13; w++) {
+            var days = [];
+            for (var d = 0; d < 7; d++) {
+                var dt = new Date(start); dt.setDate(start.getDate() + w * 7 + d);
+                var key = moodKey(dt);
+                var info = agg.byDay[key];
+                var lvl = info ? Math.min(3, info.count) : 0;
+                var color = '#ece6ea';
+                if (info) {
+                    var dom = Object.keys(info.emojis).sort(function (a, b) { return info.emojis[b] - info.emojis[a]; })[0];
+                    color = colorOf[dom] || '#e8899a';
+                }
+                var future = dt > today;
+                var title = key + (info ? (' · ' + info.count + ' 条心情') : (future ? ' · 未到' : ''));
+                days.push('<i class="hm-cell lvl-' + lvl + (future ? ' is-future' : '') + '" style="background:' + color + '" title="' + title + '"></i>');
+            }
+            weeks.push('<div class="hm-week">' + days.join('') + '</div>');
+        }
+
+        el.innerHTML =
+            '<div class="mood-trend-head">' +
+                '<span class="mood-trend-title">💗 心情趋势</span>' +
+                '<span class="mood-trend-sub">近 13 周 · 共 ' + agg.total + ' 条记录</span>' +
+            '</div>' +
+            (chips ? '<div class="mood-chips">' + chips + '</div>' : '') +
+            '<div class="heatmap" role="img" aria-label="心情活跃度热力图">' + weeks.join('') + '</div>' +
+            '<div class="heatmap-legend"><span>少</span><i class="hm-cell" style="background:#ece6ea"></i><i class="hm-cell" style="background:#e8899a"></i><i class="hm-cell lvl-3" style="background:#e8899a"></i><span>多</span></div>';
     }
 
     function renderMoodHistory(data) {
@@ -1176,6 +1228,9 @@
         // 日历面板
         renderSchedCalendar();
 
+        // 即将到来（提醒）
+        renderSchedUpcoming(S);
+
         // 绑定事件
         bindSchedEvents();
     }
@@ -1195,10 +1250,11 @@
             var whoTag = item.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
                 : item.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
             var dateTag = item.date ? '<small class="sched-date">' + item.date + '</small>' : '';
+            var repBadge = item.repeat === 'yearly' ? '<span class="sched-repeat" title="每年重复">🔁</span>' : '';
             return '<li class="' + cls + '" data-id="' + item.id + '">' +
                 '<label class="sched-check"><input type="checkbox"' + (item.done ? ' checked' : '') + ' data-id="' + item.id + '"><span></span></label>' +
                 '<span class="sched-title">' + esc(item.title) + '</span>' +
-                whoTag + dateTag +
+                whoTag + dateTag + repBadge +
                 '<button class="link-btn sched-del" data-id="' + item.id + '">✕</button>' +
             '</li>';
         }).join('') + '</ul>';
@@ -1229,6 +1285,17 @@
         var now = new Date();
         if (schedCalYear == null) { schedCalYear = now.getFullYear(); schedCalMonth = now.getMonth(); }
         var eventMap = S.getEventsByDateMap();
+
+        // 把「每年重复」事件展开到当前展示月份
+        var monthStart = new Date(schedCalYear, schedCalMonth, 1);
+        var monthEnd = new Date(schedCalYear, schedCalMonth + 1, 0);
+        S.load().events.forEach(function (e) {
+            if (e.repeat !== 'yearly' || !e.date) return;
+            S.occurrenceDates(e, monthStart, monthEnd).forEach(function (iso) {
+                if (!eventMap[iso]) eventMap[iso] = [];
+                eventMap[iso].push(Object.assign({}, e, { _yearly: true }));
+            });
+        });
 
         // 也合并经期数据
         var periodData = LP.Period ? LP.Period.load() : null;
@@ -1298,6 +1365,39 @@
         });
     }
 
+    function renderSchedUpcoming(S) {
+        var el = $('#sched-upcoming');
+        if (!el) return;
+        var list = S.getUpcoming(60).filter(function (u) { return !(u.item.done && !u.isYearly); });
+        if (list.length === 0) { el.style.display = 'none'; el.innerHTML = ''; return; }
+        el.style.display = '';
+        el.innerHTML = '<div class="upc-title">🔔 即将到来</div><ul class="upc-list">' + list.slice(0, 5).map(function (u) {
+            var info = S.TYPES[u.item.type] || S.TYPES.todo;
+            var leftTxt = u.daysLeft === 0 ? '今天' : (u.daysLeft === 1 ? '明天' : (u.daysLeft + ' 天后'));
+            var yearly = u.isYearly ? ' <span class="upc-yearly">每年</span>' : '';
+            var whoTag = u.item.who === 'a' ? '🐸' : u.item.who === 'b' ? '🐕' : '';
+            return '<li class="upc-item" data-iso="' + u.dateISO + '">' +
+                '<span class="upc-icon">' + info.icon + '</span>' +
+                '<span class="upc-name">' + esc(u.item.title) + yearly + '</span>' +
+                (whoTag ? '<span class="upc-who">' + whoTag + '</span>' : '') +
+                '<span class="upc-left">' + leftTxt + '</span>' +
+            '</li>';
+        }).join('') + '</ul>';
+        $$('.upc-item', el).forEach(function (li) {
+            li.addEventListener('click', function () {
+                var d = S._parseISO(this.dataset.iso);
+                if (!d) return;
+                schedCalYear = d.getFullYear(); schedCalMonth = d.getMonth();
+                $$('.sched-tab').forEach(function (t) { t.classList.remove('is-active'); });
+                var calTab = document.querySelector('.sched-tab[data-stab="calendar"]');
+                if (calTab) calTab.classList.add('is-active');
+                $$('.sched-panel').forEach(function (p) { p.style.display = 'none'; });
+                var p = $('#sched-panel-calendar'); if (p) p.style.display = '';
+                renderSchedCalendar();
+            });
+        });
+    }
+
     function showDayEvents(iso, eventMap) {
         var el = $('#sc-day-events');
         if (!el) return;
@@ -1309,7 +1409,7 @@
             $('.sc-add-day', el).addEventListener('click', function () {
                 $('#sched-input').value = '';
                 $('#sched-type').value = 'todo';
-                $('#sched-input').dataset.prefillDate = this.dataset.iso;
+                var di = $('#sched-date-input'); if (di) di.value = this.dataset.iso;
                 $('#sched-input').focus();
             });
             return;
@@ -1318,9 +1418,10 @@
         el.innerHTML = '<h4 class="sc-de-title">' + iso + '</h4>' +
             '<ul class="sched-list">' + evts.map(function (item) {
                 var doneCls = item.done ? ' is-done' : '';
+                var repBadge = item.repeat === 'yearly' ? '<span class="sched-repeat" title="每年重复">🔁</span>' : '';
                 return '<li class="sched-item' + doneCls + '" data-id="' + item.id + '">' +
                     '<span class="sched-title">' + esc(item.title) + '</span>' +
-                    (item.time ? '<small class="sched-time">' + item.time + '</small>' : '') +
+                    (item.time ? '<small class="sched-time">' + item.time + '</small>' : '') + repBadge +
                     '<button class="link-btn sched-del" data-id="' + item.id + '">✕</button>' +
                 '</li>';
             }).join('') + '</ul>';
@@ -1343,13 +1444,19 @@
             addBtn.addEventListener('click', function () {
                 var title = (input.value || '').trim();
                 if (!title) { toast('写点什么吧'); input.focus(); return; }
+                var dateInput = $('#sched-date-input');
+                var repeatSel = $('#sched-repeat');
+                var dateVal = (dateInput && dateInput.value) ? dateInput.value
+                    : (input.dataset.prefillDate || LP.Schedule._fmtISO(new Date()));
                 var item = {
                     type: typeSel.value,
                     title: title,
-                    date: input.dataset.prefillDate || LP.Schedule._fmtISO(new Date())
+                    date: dateVal,
+                    repeat: repeatSel ? repeatSel.value : ''
                 };
                 LP.Schedule.addItem(item);
                 input.value = '';
+                if (dateInput) dateInput.value = '';
                 delete input.dataset.prefillDate;
                 toast('已添加 ✓');
                 renderSchedule();
@@ -1425,20 +1532,44 @@
             }
         }
 
+        // ---- 标签筛选条 ----
+        renderRevTags(R);
+
         // ---- 点评列表 ----
         renderRevList('all');
 
-        // 星星选择器（添加点评用）
-        buildStarPicker('rev-star-input', 0);
-
         // 绑定事件
         bindRatingEvents();
+    }
+
+    let currentRevTab = 'all';
+    let currentRevTag = '';
+
+    function renderRevTags(R) {
+        var el = $('#rev-tags');
+        if (!el) return;
+        var tags = R.getAllTags();
+        var html = '<button class="rev-tag' + (!currentRevTag ? ' is-active' : '') + '" data-tag="">全部标签</button>';
+        html += tags.map(function (t) {
+            return '<button class="rev-tag' + (currentRevTag === t ? ' is-active' : '') + '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+        }).join('');
+        el.innerHTML = html;
+        $$('.rev-tag', el).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                currentRevTag = this.dataset.tag || '';
+                renderRevTags(R);
+                renderRevList(currentRevTab || 'all');
+            });
+        });
     }
 
     function renderRevList(category) {
         var list = $('#rev-list');
         if (!list) return;
         var reviews = LP.Rating.getReviews(category === 'all' ? null : category);
+        if (currentRevTag) {
+            reviews = reviews.filter(function (r) { return (r.tags || []).indexOf(currentRevTag) >= 0; });
+        }
         if (reviews.length === 0) {
             list.innerHTML = '<p class="sched-empty">还没有点评，去吃点好吃的再来评价吧 🍜</p>';
             return;
@@ -1452,6 +1583,37 @@
             var stars = '★'.repeat(r.rating) + '☆'.concat(5 - r.rating);
             var whoTag = r.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
                 : r.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
+
+            // 照片
+            var photosHtml = '';
+            if (r.photos && r.photos.length) {
+                photosHtml = '<div class="rev-photos">' + r.photos.map(function (mid) {
+                    return '<img class="rev-photo" data-mid="' + esc(mid) + '" alt="点评照片" loading="lazy">';
+                }).join('') + '</div>';
+            }
+
+            // 维度评分
+            var dimsHtml = '';
+            if (r.dims) {
+                var avg = LP.Rating.getDimsAvg(r);
+                dimsHtml = '<div class="rev-dims">' + LP.Rating.DIMENSIONS.map(function (d) {
+                    var v = r.dims[d.id] || 0;
+                    if (!v) return '';
+                    return '<div class="rev-dim"><span class="rev-dim-label">' + d.label + '</span>' +
+                        '<span class="rev-dim-bar"><i style="width:' + (v * 20) + '%"></i></span>' +
+                        '<span class="rev-dim-val">' + v + '</span></div>';
+                }).join('') +
+                (avg ? '<div class="rev-dim-avg">平均 ' + avg.toFixed(1) + '</div>' : '') +
+                '</div>';
+            }
+
+            // 标签
+            var tagsHtml = (r.tags && r.tags.length)
+                ? '<div class="rev-tags-inline">' + r.tags.map(function (t) {
+                    return '<button class="rev-tag-chip" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+                }).join('') + '</div>'
+                : '';
+
             return '<div class="rev-card" data-id="' + r.id + '">' +
                 '<div class="rev-head">' +
                     '<span class="rev-cat">' + cat.icon + ' ' + cat.label + '</span>' +
@@ -1459,6 +1621,7 @@
                 '</div>' +
                 '<h4 class="rev-name">' + esc(r.name) + '</h4>' +
                 (r.comment ? '<p class="rev-comment">' + esc(r.comment) + '</p>' : '') +
+                dimsHtml + photosHtml + tagsHtml +
                 '<div class="rev-meta">' + whoTag +
                     '<small>' + (r.date ? r.date.slice(0,10) : '') + '</small>' +
                     '<button class="link-btn sched-del rev-del" data-id="' + r.id + '">✕</button>' +
@@ -1466,16 +1629,35 @@
             '</div>';
         }).join('');
 
+        // 异步填充照片
+        if (window.LPMedia) {
+            $$('.rev-photo', list).forEach(function (img) {
+                var mid = img.dataset.mid;
+                LPMedia.urlOf(mid).then(function (url) {
+                    if (url) img.src = url; else img.style.display = 'none';
+                }).catch(function () { img.style.display = 'none'; });
+            });
+        }
+
+        // 标签点击筛选
+        $$('.rev-tag-chip', list).forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                currentRevTag = this.dataset.tag;
+                renderRevTags(LP.Rating);
+                renderRevList(currentRevTab || 'all');
+                var sec = document.getElementById('rating');
+                if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
         $$('.rev-del', list).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 LP.Rating.delReview(this.dataset.id);
                 toast('已删除');
-                renderRevList(currentRevTab || 'all');
+                renderRating();
             });
         });
     }
-
-    let currentRevTab = 'all';
 
     function buildStarPicker(containerId, initialVal) {
         var el = document.getElementById(containerId);
@@ -1519,35 +1701,144 @@
             });
         });
 
-        // 发表点评
+        // 写点评（打开 Sheet）
         var addBtn = $('#rev-add-btn');
         if (addBtn && !addBtn._bound) {
             addBtn._bound = true;
-            addBtn.addEventListener('click', function () {
-                var nameInput = $('#rev-name-input');
-                var catSel = $('#rev-cat-select');
-                var commentInput = $('#rev-comment-input');
-                var starEl = $('#rev-star-input');
+            addBtn.addEventListener('click', function () { showAddReview(); });
+        }
+    }
 
-                var name = (nameInput.value || '').trim();
-                if (!name) { toast('写个店名吧'); nameInput.focus(); return; }
-                var rating = parseInt(starEl.dataset.value) || 5;
+    function showAddReview() {
+        var R = LP.Rating;
+        var html = '<div class="sheet editor-sheet is-open" id="rev-add-sheet">';
+        html += '<div class="sheet-panel editor-panel"><div class="sheet-head">';
+        html += '<h3>✍️ 写点评</h3>';
+        html += '<button class="icon-btn ra-close-btn" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+        html += '</div><div class="editor-body"><div class="ed-group">';
 
-                LP.Rating.addReview({
-                    name: name,
-                    category: catSel.value,
-                    rating: rating,
-                    comment: commentInput.value.trim(),
-                    who: 'both'
+        html += '<label class="ed-row"><span class="ed-label">店名 / 场所 *</span>';
+        html += '<input type="text" class="ed-input" id="rev-name" placeholder="比如：巷子里的那家面馆" maxlength="40"></label>';
+
+        html += '<div class="ed-row"><span class="ed-label">分类</span><select class="ed-input" id="rev-category">';
+        R.CATEGORIES.forEach(function (c) { html += '<option value="' + c.id + '">' + c.icon + ' ' + c.label + '</option>'; });
+        html += '</select></div>';
+
+        html += '<div class="ed-row"><span class="ed-label">总体评分</span><div class="rev-stars" id="rev-overall-stars"></div></div>';
+
+        // 维度评分
+        html += '<div class="ed-subhead">维度评分（可选）</div>';
+        R.DIMENSIONS.forEach(function (d) {
+            html += '<div class="ed-row rev-dim-row"><span class="ed-label">' + d.label + '</span>' +
+                '<div class="rev-stars" id="rev-dim-' + d.id + '"></div></div>';
+        });
+
+        // 照片
+        html += '<div class="ed-row"><span class="ed-label">照片（可选）</span>' +
+            '<div class="rev-upload">' +
+            '<input type="file" id="rev-photo-input" accept="image/*" multiple hidden>' +
+            '<button type="button" class="btn-ghost rev-photo-btn" id="rev-photo-btn">📷 添加照片</button>' +
+            '<div class="rev-photo-preview" id="rev-photo-preview"></div>' +
+            '</div></div>';
+
+        html += '<label class="ed-row"><span class="ed-label">标签（逗号分隔）</span>';
+        html += '<input type="text" class="ed-input" id="rev-tags-input" placeholder="约会圣地, 性价比高"></label>';
+
+        html += '<label class="ed-row"><span class="ed-label">是谁去吃的</span><select class="ed-input" id="rev-who">';
+        html += '<option value="both">一起 💞</option><option value="a">🐸 阿蛙</option><option value="b">🐕 阿狗</option></select></div>';
+
+        html += '<label class="ed-row"><span class="ed-label">点评</span>';
+        html += '<textarea class="ed-input" id="rev-comment" rows="3" placeholder="环境怎么样？必点菜是什么？"></textarea></label>';
+
+        html += '</div></div><div class="editor-foot" style="text-align:center;">';
+        html += '<button class="btn-primary" id="rev-save-btn">保存点评</button>';
+        html += '</div></div></div>';
+
+        var old = document.getElementById('rev-add-sheet');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        var sheet = wrap.firstElementChild;
+        document.body.appendChild(sheet);
+
+        // 星星选择器
+        buildStarPicker('rev-overall-stars', 5);
+        R.DIMENSIONS.forEach(function (d) { buildStarPicker('rev-dim-' + d.id, 0); });
+
+        // 照片选择（暂存，提交时写入 IndexedDB）
+        var pending = []; // { file, url }
+        var photoInput = $('#rev-photo-input');
+        var photoBtn = $('#rev-photo-btn');
+        var preview = $('#rev-photo-preview');
+        function renderPreview() {
+            preview.innerHTML = pending.map(function (p, i) {
+                return '<div class="rev-thumb"><img src="' + p.url + '" alt=""><button type="button" class="rev-thumb-x" data-i="' + i + '">✕</button></div>';
+            }).join('');
+            $$('.rev-thumb-x', preview).forEach(function (x) {
+                x.addEventListener('click', function () {
+                    var i = parseInt(this.dataset.i);
+                    if (pending[i] && pending[i].url) URL.revokeObjectURL(pending[i].url);
+                    pending.splice(i, 1);
+                    renderPreview();
                 });
-
-                nameInput.value = '';
-                commentInput.value = '';
-                buildStarPicker('rev-star-input', 0);
-                toast('点评发表 ✓');
-                renderRevList(currentRevTab || 'all');
             });
         }
+        photoBtn.addEventListener('click', function () { photoInput.click(); });
+        photoInput.addEventListener('change', function () {
+            Array.prototype.forEach.call(this.files, function (f) {
+                if (!f.type.startsWith('image/')) return;
+                pending.push({ file: f, url: URL.createObjectURL(f) });
+            });
+            this.value = '';
+            renderPreview();
+        });
+
+        // 保存
+        $('#rev-save-btn').addEventListener('click', async function () {
+            var name = ($('#rev-name').value || '').trim();
+            if (!name) { toast('写个店名吧'); $('#rev-name').focus(); return; }
+            var rating = parseInt($('#rev-overall-stars').dataset.value) || 5;
+
+            var dims = {};
+            R.DIMENSIONS.forEach(function (d) {
+                var v = parseInt($('#rev-dim-' + d.id).dataset.value) || 0;
+                if (v > 0) dims[d.id] = v;
+            });
+
+            var tagStr = ($('#rev-tags-input').value || '').trim();
+            var tags = tagStr ? tagStr.split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean) : [];
+
+            // 写入照片到 IndexedDB（本地存储，不跨设备同步）
+            var photoIds = [];
+            if (pending.length && window.LPMedia) {
+                for (var i = 0; i < pending.length; i++) {
+                    var mid = 'rev_' + Date.now().toString(36) + '_' + i + '_' + Math.random().toString(36).slice(2, 6);
+                    try { await LPMedia.putImage(mid, pending[i].file); photoIds.push(mid); }
+                    catch (e) { console.warn('[Rating] 照片存储失败', e); }
+                }
+            }
+
+            R.addReview({
+                name: name,
+                category: $('#rev-category').value,
+                rating: rating,
+                dims: dims,
+                tags: tags,
+                photos: photoIds,
+                comment: ($('#rev-comment').value || '').trim(),
+                who: $('#rev-who').value
+            });
+
+            toast('点评已保存 ✓');
+            sheet.remove();
+            renderRating();
+        });
+
+        $('.ra-close-btn', sheet).addEventListener('click', function () {
+            pending.forEach(function (p) { if (p.url) URL.revokeObjectURL(p.url); });
+            sheet.remove();
+        });
     }
 
     function showScorePicker(scoreKey, toWho) {
@@ -1599,6 +1890,7 @@
        模块 11 — 学术/资料库（新增）
        ========================================================= */
     let currentResCat = ''; // '' = all
+    let currentResTag = '';
 
     function renderResources() {
         if (!LP.Resources) return;
@@ -1617,10 +1909,15 @@
                     $$('.res-cat', catsEl).forEach(function (b) { b.classList.remove('is-active'); });
                     this.classList.add('is-active');
                     currentResCat = this.dataset.rcat;
+                    currentResTag = '';           // 切换分类时清除标签筛选
+                    renderResTags(R);
                     renderResList();
                 });
             });
         }
+
+        // 标签筛选条
+        renderResTags(R);
 
         // 资料列表
         renderResList();
@@ -1629,21 +1926,49 @@
         bindResEvents();
     }
 
+    function renderResTags(R) {
+        var el = $('#res-tags');
+        if (!el) return;
+        var tags = R.getAllTags();
+        if (!tags.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+        el.style.display = '';
+        var html = '<button class="res-tag' + (!currentResTag ? ' is-active' : '') + '" data-tag="">全部标签</button>';
+        html += tags.map(function (t) {
+            return '<button class="res-tag' + (currentResTag === t ? ' is-active' : '') + '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+        }).join('');
+        el.innerHTML = html;
+        $$('.res-tag', el).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                currentResTag = this.dataset.tag || '';
+                renderResTags(R);
+                renderResList();
+            });
+        });
+    }
+
     function renderResList() {
         var list = $('#res-list');
         if (!list) return;
         var R = LP.Resources;
-        var items = currentResCat ? R.getByCategory(currentResCat) : R.load().resources;
 
-        // 应用搜索过滤
+        // 取数据：标签优先，其次分类，否则全部（均置顶优先）
+        var items;
+        if (currentResTag) items = R.getByTag(currentResTag);
+        else if (currentResCat) items = R.getByCategory(currentResCat);
+        else items = R.load().resources.slice().sort(function (a, b) {
+            if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+            return new Date(b.date) - new Date(a.date);
+        });
+
+        // 搜索过滤（保持置顶优先）
         var searchVal = ($('#res-search') || {}).value || '';
-        if (searchVal.trim()) items = R.search(searchVal.trim());
-
-        // 按日期倒序
-        items = items.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+        if (searchVal.trim()) items = R.search(searchVal.trim()).slice().sort(function (a, b) {
+            if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+            return new Date(b.date) - new Date(a.date);
+        });
 
         if (items.length === 0) {
-            list.innerHTML = '<p class="sched-empty">' + (currentResCat ? '这个分类还没有资料' : '资料库还是空的，点击「新增」添加第一条') + '</p>';
+            list.innerHTML = '<p class="sched-empty">' + (currentResCat || currentResTag ? '没有匹配的资料' : '资料库还是空的，点击「+ 新增」添加第一条') + '</p>';
             return;
         }
 
@@ -1653,21 +1978,48 @@
         list.innerHTML = items.map(function (r) {
             var cat = catMap[r.category] || { icon: '📎', label: '其他' };
             var tagsHtml = (r.tags && r.tags.length)
-                ? '<div class="res-tags">' + r.tags.map(function (t) { return '<span class="res-tag">' + esc(t) + '</span>'; }).join('') + '</div>'
+                ? '<div class="res-tags">' + r.tags.map(function (t) {
+                    return '<button class="res-tag-chip" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+                }).join('') + '</div>'
                 : '';
             var abstractHtml = r.abstract ? '<p class="res-abstract">' + esc(r.abstract) + '</p>' : '';
+            var noteHtml = r.note ? '<p class="res-note">📝 ' + esc(r.note) + '</p>' : '';
             var urlHtml = r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="res-link">打开链接 ↗</a>' : '';
+            var pinBadge = r.pinned ? '<span class="res-pin-badge" title="已置顶">📌 置顶</span>' : '';
 
-            return '<div class="res-card" data-id="' + r.id + '">' +
+            return '<div class="res-card' + (r.pinned ? ' is-pinned' : '') + '" data-id="' + r.id + '">' +
                 '<div class="res-head">' +
                     '<span class="res-cat-badge">' + cat.icon + ' ' + cat.label + '</span>' +
+                    pinBadge +
                     '<span class="res-date">' + (r.date ? r.date.slice(0,10) : '') + '</span>' +
+                    '<button class="link-btn res-pin" data-id="' + r.id + '" title="置顶 / 取消置顶">' + (r.pinned ? '📌' : '📍') + '</button>' +
                     '<button class="link-btn sched-del res-del" data-id="' + r.id + '">✕</button>' +
                 '</div>' +
                 '<h4 class="res-title">' + (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a>' : esc(r.title)) + '</h4>' +
-                abstractHtml + tagsHtml + urlHtml +
+                abstractHtml + noteHtml + tagsHtml + urlHtml +
             '</div>';
         }).join('');
+
+        // 标签点击筛选
+        $$('.res-tag-chip', list).forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                currentResTag = this.dataset.tag;
+                renderResTags(R);
+                renderResList();
+                var sec = document.getElementById('resources');
+                if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // 置顶切换
+        $$('.res-pin', list).forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                LP.Resources.pinResource(this.dataset.id);
+                toast('已更新置顶状态');
+                renderResources();
+            });
+        });
 
         $$('.res-del', list).forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -1720,8 +2072,13 @@
         html += '<label class="ed-row"><span class="ed-label">摘要</span>';
         html += '<textarea class="ed-input" id="res-abstract" rows="3" placeholder="简要描述…"></textarea></label>';
 
+        html += '<label class="ed-row"><span class="ed-label">备注 / 个人想法</span>';
+        html += '<textarea class="ed-input" id="res-note" rows="2" placeholder="比如：第三章值得重读、适合周末看…"></textarea></label>';
+
         html += '<div class="ed-row"><span class="ed-label">标签（逗号分隔）</span>';
         html += '<input type="text" class="ed-input" id="res-tags" placeholder="机器学习, 论文, 2024"></div>';
+
+        html += '<label class="ed-check"><input type="checkbox" id="res-pinned"> 置顶这条资料</label>';
 
         html += '</div></div><div class="editor-foot" style="text-align:center;">';
         html += '<button class="btn-primary" id="res-save-btn">保存</button>';
@@ -1746,6 +2103,8 @@
                 url: ($('#res-url').value || '').trim() || undefined,
                 category: $('#res-category').value,
                 abstract: ($('#res-abstract').value || '').trim(),
+                note: ($('#res-note').value || '').trim(),
+                pinned: ($('#res-pinned') || {}).checked === true,
                 tags: tags
             });
 

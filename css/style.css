@@ -1603,6 +1603,46 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 .mh-text { color: var(--ink-3); font-style: italic; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mh-time { font-size: .68rem; color: var(--ink-3); margin-left: auto; white-space: nowrap; }
 
+/* 心情趋势热力图 */
+.mood-trend {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--line, rgba(201,104,124,.14));
+    border-radius: 16px;
+    padding: 14px 16px 12px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 12px rgba(180,100,120,.06);
+}
+.mood-trend-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.mood-trend-title { font-weight: 700; font-size: .92rem; color: var(--ink); }
+.mood-trend-sub { font-size: .7rem; color: var(--ink-3); }
+.mood-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.mood-chip {
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mc, #e8899a) 16%, var(--surface-solid));
+    color: var(--ink-2);
+    font-weight: 600;
+}
+.heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+.hm-week { display: flex; flex-direction: column; gap: 3px; }
+.hm-cell {
+    width: 11px; height: 11px;
+    border-radius: 3px;
+    background: #ece6ea;
+    transition: transform .12s;
+}
+.hm-cell.lvl-1 { opacity: .55; }
+.hm-cell.lvl-2 { opacity: .8; }
+.hm-cell.lvl-3 { opacity: 1; }
+.hm-cell.is-future { opacity: .25; }
+.hm-cell:hover { transform: scale(1.35); }
+.heatmap-legend {
+    display: flex; align-items: center; gap: 5px;
+    margin-top: 8px; font-size: .66rem; color: var(--ink-3);
+}
+.heatmap-legend .hm-cell { width: 9px; height: 9px; }
+
 /* 心情选择器网格 */
 .mood-grid {
     display: grid;
@@ -1644,11 +1684,13 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 /* 快捷添加 */
 .sched-quick {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 16px;
     max-width: 520px;
     margin-left: auto; margin-right: auto;
 }
+.sched-quick .sched-input { flex: 1 1 160px; }
 .sched-input {
     flex: 1;
     padding: 10px 14px;
@@ -1776,6 +1818,38 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 }
 .sched-item:hover .sched-del { opacity: .6; }
 .sched-del:hover { opacity: 1 !important; }
+.sched-repeat { font-size: .8rem; }
+
+/* 即将到来（提醒） */
+.sched-upcoming {
+    max-width: 520px;
+    margin: 0 auto 16px;
+    background: color-mix(in srgb, var(--gold) 12%, var(--surface-solid));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+.upc-title { font-weight: 700; font-size: .85rem; color: var(--ink); margin-bottom: 8px; }
+.upc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.upc-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    background: var(--surface-solid, #fff);
+    border-radius: 10px;
+    font-size: .84rem;
+    cursor: pointer;
+    transition: transform .12s;
+}
+.upc-item:hover { transform: translateX(2px); }
+.upc-icon { font-size: 1rem; }
+.upc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-1); }
+.upc-yearly { font-size: .66rem; color: var(--gold); border: 1px solid var(--gold); border-radius: 6px; padding: 0 4px; margin-left: 2px; }
+.upc-who { font-size: .8rem; }
+.upc-left {
+    font-size: .72rem; font-weight: 700; color: var(--rose-deep, #c9687c);
+    background: color-mix(in srgb, var(--rose) 14%, transparent);
+    border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+}
 
 /* 日历导航 */
 .sched-cal-nav {
@@ -2507,4 +2581,111 @@ body[data-theme="dark"] .china-prov.is-visited:hover { fill: var(--rose-deep); }
     .room-actions { gap: 6px; margin: 0 8px 14px; }
     .room-action-btn { padding: 8px 16px; font-size: .82rem; }
     .room-panel { margin: 0 8px; }
+}
+
+/* =========================================================
+   评分 / 点评 — 深化样式（标签筛选 / 维度评分 / 照片）
+   ========================================================= */
+.rev-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    max-width: 620px;
+    margin: 0 auto 14px;
+}
+.rev-toolbar .rev-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.rev-tab {
+    padding: 5px 12px;
+    border: 1.5px solid transparent;
+    border-radius: 16px;
+    background: transparent;
+    font-size: .78rem;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: all .15s;
+}
+.rev-tab:hover { background: rgba(232,137,154,.06); }
+.rev-tab.is-active {
+    background: rgba(232,137,154,.1);
+    border-color: rgba(232,137,154,.25);
+    font-weight: 600;
+}
+
+/* 标签筛选条（点评 / 资料通用） */
+.rev-tags, .res-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0 auto 14px; max-width: 620px; }
+.rev-tag, .res-tag-chip, .rev-tag-chip {
+    font-size: .72rem;
+    padding: 3px 10px;
+    border: 1px solid rgba(100,140,200,.25);
+    background: rgba(100,140,200,.07);
+    color: #4A6FA5;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .15s;
+}
+.res-tag-chip { background: rgba(100,140,200,.07); }
+.rev-tag:hover, .res-tag-chip:hover, .rev-tag-chip:hover { background: rgba(100,140,200,.16); }
+.rev-tag.is-active {
+    background: #4A6FA5;
+    border-color: #4A6FA5;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 点评卡：照片 + 维度 + 标签 */
+.rev-card { border-radius: 14px; }
+.rev-photos { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.rev-photo {
+    width: 76px; height: 76px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: rgba(0,0,0,.04);
+    cursor: zoom-in;
+}
+.rev-dims { margin: 8px 0 2px; display: flex; flex-direction: column; gap: 4px; }
+.rev-dim { display: flex; align-items: center; gap: 8px; font-size: .74rem; color: var(--ink-2); }
+.rev-dim-label { width: 42px; color: var(--ink-3); }
+.rev-dim-bar { flex: 1; height: 6px; border-radius: 4px; background: rgba(0,0,0,.07); overflow: hidden; }
+.rev-dim-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg,var(--rose,#E8899A),var(--gold,#E3B183)); }
+.rev-dim-val { width: 14px; text-align: right; color: var(--ink-3); }
+.rev-dim-avg { font-size: .72rem; color: var(--ink-3); margin-top: 2px; text-align: right; }
+.rev-tags-inline { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+
+/* 点评 Sheet 内的维度行 / 照片上传 */
+.ed-subhead { font-size: .74rem; color: var(--ink-3); margin: 10px 0 2px; letter-spacing: .04em; }
+.ed-check { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--ink-2); margin-top: 10px; cursor: pointer; }
+.rev-dim-row { flex-direction: row; align-items: center; }
+.rev-dim-row .ed-label { width: 48px; }
+.rev-dim-row .rev-stars { flex: 1; }
+.rev-upload { width: 100%; }
+.rev-photo-btn { font-size: .78rem; }
+.rev-photo-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rev-thumb { position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; }
+.rev-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rev-thumb-x {
+    position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px; border: none; border-radius: 50%;
+    background: rgba(0,0,0,.55); color: #fff; font-size: .6rem; cursor: pointer; line-height: 18px; padding: 0;
+}
+
+/* =========================================================
+   资料库 — 深化样式（置顶 / 备注 / 标签筛选）
+   ========================================================= */
+.res-card.is-pinned { border-color: rgba(227,177,131,.55); box-shadow: 0 2px 12px rgba(227,177,131,.16); }
+.res-pin-badge { font-size: .66rem; color: var(--gold,#E3B183); font-weight: 600; margin-right: auto; }
+.res-pin {
+    margin-left: 4px;
+    border: none; background: transparent; cursor: pointer;
+    font-size: .9rem; color: var(--ink-3); padding: 2px 4px; border-radius: 6px;
+    transition: all .15s;
+}
+.res-pin:hover { background: rgba(232,137,154,.1); color: var(--rose,#E8899A); }
+.res-date { margin-left: 6px; }
+.res-note { font-size: .8rem; color: var(--ink-2); background: rgba(157,181,164,.1); border-left: 3px solid var(--sage,#9DB5A4); padding: 6px 10px; border-radius: 0 8px 8px 0; margin: 6px 0; line-height: 1.5; }
+
+@media (max-width: 520px) {
+    .rev-toolbar { margin: 0 8px 12px; }
+    .rev-photo { width: 64px; height: 64px; }
 }

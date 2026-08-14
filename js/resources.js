@@ -21,7 +21,8 @@
 
     function getDefaultData() {
         return {
-            resources: [],  // [{ id, title, url, category, tags[], abstract, note, date, who }]
+            // [{ id, title, url, category, tags[], abstract, note, pinned, date, who }]
+            resources: [],
             categories: CATEGORIES
         };
     }
@@ -44,6 +45,8 @@
     function addResource(res) {
         var data = load();
         res.id = genId();
+        res.pinned = !!res.pinned;
+        res.note = (res.note || '').trim();
         res.date = new Date().toISOString();
         data.resources.push(res);
         if (data.resources.length > MAX_ITEMS) data.resources = data.resources.slice(-MAX_ITEMS);
@@ -67,6 +70,16 @@
         return data;
     }
 
+    /** 置顶 / 取消置顶 */
+    function pinResource(id) {
+        var data = load();
+        var r = data.resources.find(function (x) { return x.id === id; });
+        if (!r) return null;
+        r.pinned = !r.pinned;
+        save(data);
+        return data;
+    }
+
     /** 搜索 */
     function search(query) {
         var q = (query || '').toLowerCase();
@@ -79,10 +92,25 @@
         });
     }
 
-    /** 按分类获取 */
+    /** 按分类获取（置顶优先，再按时间倒序） */
     function getByCategory(catId) {
-        if (!catId) return load().resources;
-        return load().resources.filter(function (r) { return r.category === catId; });
+        var list = catId ? load().resources.filter(function (r) { return r.category === catId; })
+                        : load().resources;
+        return sortItems(list);
+    }
+
+    /** 按标签获取（置顶优先） */
+    function getByTag(tag) {
+        var list = load().resources.filter(function (r) { return (r.tags || []).indexOf(tag) >= 0; });
+        return sortItems(list);
+    }
+
+    /** 置顶优先，其次按日期倒序 */
+    function sortItems(list) {
+        return list.slice().sort(function (a, b) {
+            if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+            return new Date(b.date) - new Date(a.date);
+        });
     }
 
     /** 获取所有标签 */
@@ -109,8 +137,10 @@
         addResource: addResource,
         updateResource: updateResource,
         delResource: delResource,
+        pinResource: pinResource,
         search: search,
         getByCategory: getByCategory,
+        getByTag: getByTag,
         getAllTags: getAllTags,
         exportData: exportData,
         importData: importData

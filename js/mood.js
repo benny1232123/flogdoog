@@ -84,6 +84,29 @@
         return false;
     }
 
+    function fmtISO(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    /** 心情聚合：按天分布 + 情绪分布，用于趋势热力图 */
+    function getAggregates(data) {
+        data = data || load();
+        var byDay = {};
+        (data.history || []).forEach(function (e) {
+            var d = e.time ? new Date(e.time) : null;
+            if (!d || isNaN(d.getTime())) return;
+            var key = fmtISO(d);
+            if (!byDay[key]) byDay[key] = { count: 0, emojis: {}, who: {} };
+            byDay[key].count++;
+            byDay[key].emojis[e.emoji] = (byDay[key].emojis[e.emoji] || 0) + 1;
+            byDay[key].who[e.who] = (byDay[key].who[e.who] || 0) + 1;
+        });
+        var dist = {};
+        (data.history || []).forEach(function (e) { dist[e.emoji] = (dist[e.emoji] || 0) + 1; });
+        return { byDay: byDay, dist: dist, total: (data.history || []).length };
+    }
+
     window.LP = window.LP || {};
     window.LP.Mood = {
         MOODS: MOODS,
@@ -92,6 +115,7 @@
         save: save,
         setMood: setMood,
         clearMood: clearMood,
+        getAggregates: getAggregates,
         exportData: exportData,
         importData: importData
     };

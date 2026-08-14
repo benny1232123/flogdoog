@@ -8,6 +8,17 @@
     const LS_KEY = 'lp_schedule';
     const MAX_ITEMS = 200;
 
+    // 模块级日期工具（供内部函数直接调用，避免 _parseISO 未定义）
+    function _parseISO(s) {
+        if (!s) return null;
+        var d = new Date(s + 'T00:00:00');
+        return isNaN(d.getTime()) ? null : d;
+    }
+    function _fmtISO(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     // 事件类型
     const TYPES = {
         todo: { label: '待办', icon: '☐', color: '#6B8E23' },
@@ -101,6 +112,43 @@
         return map;
     }
 
+    /** 计算事件在 [from,to] 区间内的发生日期（含每年重复） */
+    function occurrenceDates(e, from, to) {
+        var res = [];
+        if (!e.date) return res;
+        if (e.repeat === 'yearly') {
+            var md = (e.date + '').slice(5, 10); // MM-DD
+            if (!md || md.length < 5) return res;
+            for (var y = from.getFullYear(); y <= to.getFullYear(); y++) {
+                var iso = y + '-' + md;
+                var d = _parseISO(iso);
+                if (d && d >= from && d <= to) res.push(iso);
+            }
+        } else {
+            var d2 = _parseISO(e.date);
+            if (d2 && d2 >= from && d2 <= to) res.push(e.date);
+        }
+        return res;
+    }
+
+    /** 获取即将到来的带日期事件（含每年重复），按时间排序 */
+    function getUpcoming(daysAhead) {
+        var data = load();
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var horizon = new Date(today); horizon.setDate(horizon.getDate() + (daysAhead || 60));
+        var out = [];
+        data.events.forEach(function (e) {
+            if (!e.date) return;
+            occurrenceDates(e, today, horizon).forEach(function (iso) {
+                var d = _parseISO(iso);
+                var left = Math.round((d - today) / 86400000);
+                out.push({ item: e, dateISO: iso, daysLeft: left, isYearly: e.repeat === 'yearly' });
+            });
+        });
+        out.sort(function (a, b) { return a.daysLeft - b.daysLeft; });
+        return out;
+    }
+
     function exportData() { return load(); }
     function importData(d) {
         if (d && typeof d === 'object' && Array.isArray(d.events)) { save(d); return true; }
@@ -120,16 +168,11 @@
         getByDate: getByDate,
         getPending: getPending,
         getEventsByDateMap: getEventsByDateMap,
+        getUpcoming: getUpcoming,
+        occurrenceDates: occurrenceDates,
         exportData: exportData,
         importData: importData,
-        _fmtISO: function (d) {
-            if (!(d instanceof Date) || isNaN(d.getTime())) return '';
-            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        },
-        _parseISO: function (s) {
-            if (!s) return null;
-            var d = new Date(s + 'T00:00:00');
-            return isNaN(d.getTime()) ? null : d;
-        }
+        _fmtISO: _fmtISO,
+        _parseISO: _parseISO
     };
 })();

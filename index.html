@@ -286,14 +286,22 @@
             <!-- 快捷添加 -->
             <div class="sched-quick reveal">
                 <input type="text" id="sched-input" class="sched-input" placeholder="加一条待办/购物/约会…" maxlength="100">
+                <input type="date" id="sched-date-input" class="sched-type-select" title="日期（可留空=今天）">
                 <select id="sched-type" class="sched-type-select">
                     <option value="todo">待办</option>
                     <option value="shopping">购物</option>
                     <option value="date">💕 约会</option>
                     <option value="reminder">提醒</option>
                 </select>
+                <select id="sched-repeat" class="sched-type-select" title="重复">
+                    <option value="">不重复</option>
+                    <option value="yearly">🔁 每年</option>
+                </select>
                 <button class="btn-primary" id="sched-add-btn" type="button">添加</button>
             </div>
+
+            <!-- 即将到来 -->
+            <div class="sched-upcoming reveal" id="sched-upcoming" style="display:none"></div>
 
             <!-- 标签页：待办 | 购物 | 日历 -->
             <div class="sched-tabs reveal">
@@ -324,27 +332,18 @@
 
             <!-- 点评区 -->
             <div class="review-sec reveal">
-                <div class="rev-tabs">
-                    <button class="rev-tab is-active" data-revtab="all" type="button">全部</button>
-                    <button class="rev-tab" data-revtab="restaurant" type="button">🍽️ 餐馆</button>
-                    <button class="rev-tab" data-revtab="bubble_tea" type="button">🧋 奶茶</button>
-                    <button class="rev-tab" data-revtab="cafe" type="button">🐱 猫狗咖</button>
-                    <button class="rev-tab" data-revtab="dessert" type="button">🍮 甜品</button>
+                <div class="rev-toolbar">
+                    <div class="rev-tabs">
+                        <button class="rev-tab is-active" data-revtab="all" type="button">全部</button>
+                        <button class="rev-tab" data-revtab="restaurant" type="button">🍽️ 餐馆</button>
+                        <button class="rev-tab" data-revtab="bubble_tea" type="button">🧋 奶茶</button>
+                        <button class="rev-tab" data-revtab="cafe" type="button">🐱 猫狗咖</button>
+                        <button class="rev-tab" data-revtab="dessert" type="button">🍮 甜品</button>
+                    </div>
+                    <button class="btn-primary" id="rev-add-btn" type="button">✍️ 写点评</button>
                 </div>
-                <!-- 快捷添加点评 -->
-                <div class="rev-add reveal">
-                    <input type="text" id="rev-name-input" class="sched-input" placeholder="店名/场所名…" maxlength="40">
-                    <select id="rev-cat-select" class="sched-type-select">
-                        <option value="restaurant">🍽️ 餐馆</option>
-                        <option value="bubble_tea">🧋 奶茶</option>
-                        <option value="cafe">🐱 猫狗咖</option>
-                        <option value="dessert">🍮 甜品</option>
-                        <option value="other">📍 其他</option>
-                    </select>
-                    <div class="rev-stars" id="rev-star-input"></div>
-                    <textarea id="rev-comment-input" class="sched-input" rows="2" placeholder="评价一下…（可选）" style="flex:1 1 100%"></textarea>
-                    <button class="btn-primary" id="rev-add-btn" type="button">发表点评</button>
-                </div>
+                <!-- 标签筛选 -->
+                <div class="rev-tags reveal" id="rev-tags"></div>
                 <!-- 点评列表 -->
                 <div class="rev-list" id="rev-list"></div>
             </div>
@@ -365,6 +364,9 @@
 
             <!-- 分类标签 -->
             <div class="res-cats reveal" id="res-cats"></div>
+
+            <!-- 标签筛选 -->
+            <div class="res-tags reveal" id="res-tags"></div>
 
             <!-- 资料列表 -->
             <div class="res-list" id="res-list"></div>
