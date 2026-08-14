@@ -1779,3 +1779,147 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .sched-type-select { order: 2; flex: 1; }
     .sched-quick .btn-primary { order: 3; flex: 1; }
 }
+
+/* =========================================================
+   评分榜 + 点评模块样式
+   ========================================================= */
+
+/* 打分榜 */
+.scoreboard {
+    max-width: 500px;
+    margin: 0 auto 28px;
+}
+.sb-title {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink-1);
+    margin-bottom: 16px;
+}
+.sb-pair {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+}
+.sb-card {
+    flex: 1;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 18px 14px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sb-card-a { border-top: 3px solid #74B072; }
+.sb-card-b { border-top: 3px solid #E0A06D; }
+.sb-name { font-size: .88rem; font-weight: 600; }
+.sb-score {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--accent, #e8899a);
+    line-height: 1;
+}
+.sb-count { font-size: .72rem; color: var(--ink-3); }
+.sb-rate-btn { margin-top: auto; font-size: .82rem; padding: 6px 14px; }
+
+.sb-vs {
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--accent, #e8899a);
+    letter-spacing: 2px;
+}
+
+/* 最近打分 */
+.sb-recent { margin-top: 16px; }
+.sb-recent h4 { font-size: .85rem; color: var(--ink-2); margin-bottom: 8px; }
+.sb-rec {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    font-size: .8rem;
+    border-bottom: 1px solid rgba(0,0,0,.04);
+}
+.sb-stars { color: #F5A623; letter-spacing: 1px; }
+.sb-comment { color: var(--ink-3); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 点评区 */
+.review-sec { max-width: 540px; margin: 0 auto; }
+
+.rev-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.rev-tab {
+    padding: 6px 14px;
+    border: 1.5px solid transparent;
+    border-radius: 16px;
+    background: transparent;
+    font-size: .82rem;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: all .15s;
+}
+.rev-tab:hover { background: rgba(232,137,154,.06); }
+.rev-tab.is-active {
+    background: rgba(232,137,154,.1);
+    border-color: rgba(232,137,154,.25);
+    font-weight: 600;
+}
+
+/* 添加点评 */
+.rev-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 14px;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 14px;
+    margin-bottom: 16px;
+}
+.rev-stars { display: flex; gap: 2px; order: -1; }
+
+/* 星星按钮 */
+.star-btn {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #ddd;
+    transition: color .1s;
+    padding: 2px;
+    line-height: 1;
+}
+.star-btn.is-active { color: #F5A623; }
+.star-btn:hover { color: #F5A623; transform: scale(1.15); }
+
+.big-star-picker { display: flex; justify-content: center; gap: 8px; margin: 10px 0; }
+.big-star-picker .star-btn { font-size: 2.4rem; }
+
+/* 点评卡片 */
+.rev-card {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.06));
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+.rev-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.rev-cat { font-size: .76rem; color: var(--ink-3); }
+.rev-stars { color: #F5A623; font-size: .84rem; letter-spacing: 1px; }
+.rev-name { font-size: .95rem; font-weight: 600; margin: 4px 0; color: var(--ink-1); }
+.rev-comment { font-size: .82rem; color: var(--ink-2); margin: 4px 0; line-height: 1.5; }
+.rev-meta { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: var(--ink-3); }
+
+@media (max-width: 520px) {
+    .sb-card { padding: 14px 10px; }
+    .sb-score { font-size: 2rem; }
+    .rev-add { margin: 0 8px 14px; padding: 12px; }
+}

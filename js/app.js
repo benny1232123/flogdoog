@@ -1353,6 +1353,225 @@
     }
 
     /* =========================================================
+       模块 10 — 评分榜 + 点评（新增）
+       ========================================================= */
+    function renderRating() {
+        if (!LP.Rating) return;
+        var R = LP.Rating;
+        var data = R.load();
+        var cpl = state.config.couple;
+        var nameA = (cpl && cpl.a && cpl.a.name) || '阿蛙';
+        var nameB = (cpl && cpl.b && cpl.b.name) || '阿狗';
+
+        // ---- 打分榜 ----
+        var board = $('#scoreboard');
+        if (board) {
+            var sumA = R.getScoreSummary('a'); // b打给a的
+            var sumB = R.getScoreSummary('b');
+            var recent = R.getRecentScores(5);
+
+            board.innerHTML = '<div class="sb-title">🏆 大笨狗 vs 小笨蛙</div>' +
+                '<div class="sb-pair">' +
+                    '<div class="sb-card sb-card-a">' +
+                        '<span class="sb-name">' + esc(nameA) + '（小笨蛙）</span>' +
+                        '<span class="sb-score">' + (sumA.avg || '-') + '</span>' +
+                        '<span class="sb-count">' + sumA.count + ' 次被打分</span>' +
+                        '<button class="btn-ghost sb-rate-btn" data-target="b_to_a" data-to="a">给 Ta 打分</button>' +
+                    '</div>' +
+                    '<div class="sb-vs" aria-hidden="true">VS</div>' +
+                    '<div class="sb-card sb-card-b">' +
+                        '<span class="sb-name">' + esc(nameB) + '（大笨狗）</span>' +
+                        '<span class="sb-score">' + (sumB.avg || '-') + '</span>' +
+                        '<span class="sb-count">' + sumB.count + ' 次被打分</span>' +
+                        '<button class="btn-ghost sb-rate-btn" data-target="a_to_b" data-to="b">给 Ta 打分</button>' +
+                    '</div>' +
+                '</div>';
+
+            // 最近打分记录
+            if (recent.length > 0) {
+                board.innerHTML += '<div class="sb-recent"><h4>最近打分</h4>' +
+                    recent.map(function (s) {
+                        var from = s.id.indexOf('a') === 0 ? nameA : nameB; // 简化判断
+                        var toName = (data.scores.a_to_b || []).indexOf(s) >= 0 ? nameB : nameA;
+                        return '<div class="sb-rec"><span>' + from + ' → ' + toName + '</span>' +
+                            '<span class="sb-stars">' + '★'.repeat(s.score) + '☆'.repeat(5-s.score) + '</span>' +
+                            (s.comment ? '<span class="sb-comment">' + esc(s.comment) + '</span>' : '') +
+                        '</div>';
+                    }).join('') + '</div>';
+            }
+        }
+
+        // ---- 点评列表 ----
+        renderRevList('all');
+
+        // 星星选择器（添加点评用）
+        buildStarPicker('rev-star-input', 0);
+
+        // 绑定事件
+        bindRatingEvents();
+    }
+
+    function renderRevList(category) {
+        var list = $('#rev-list');
+        if (!list) return;
+        var reviews = LP.Rating.getReviews(category === 'all' ? null : category);
+        if (reviews.length === 0) {
+            list.innerHTML = '<p class="sched-empty">还没有点评，去吃点好吃的再来评价吧 🍜</p>';
+            return;
+        }
+
+        var catMap = {};
+        LP.Rating.CATEGORIES.forEach(function (c) { catMap[c.id] = c; });
+
+        list.innerHTML = reviews.map(function (r) {
+            var cat = catMap[r.category] || { icon: '📍', label: '其他' };
+            var stars = '★'.repeat(r.rating) + '☆'.concat(5 - r.rating);
+            var whoTag = r.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
+                : r.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
+            return '<div class="rev-card" data-id="' + r.id + '">' +
+                '<div class="rev-head">' +
+                    '<span class="rev-cat">' + cat.icon + ' ' + cat.label + '</span>' +
+                    '<span class="rev-stars">' + stars + '</span>' +
+                '</div>' +
+                '<h4 class="rev-name">' + esc(r.name) + '</h4>' +
+                (r.comment ? '<p class="rev-comment">' + esc(r.comment) + '</p>' : '') +
+                '<div class="rev-meta">' + whoTag +
+                    '<small>' + (r.date ? r.date.slice(0,10) : '') + '</small>' +
+                    '<button class="link-btn sched-del rev-del" data-id="' + r.id + '">✕</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        $$('.rev-del', list).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                LP.Rating.delReview(this.dataset.id);
+                toast('已删除');
+                renderRevList(currentRevTab || 'all');
+            });
+        });
+    }
+
+    let currentRevTab = 'all';
+
+    function buildStarPicker(containerId, initialVal) {
+        var el = document.getElementById(containerId);
+        if (!el) return;
+        var html = '';
+        for (var i = 1; i <= 5; i++) {
+            html += '<button type="button" class="star-btn' + (i <= initialVal ? ' is-active' : '') + '" data-val="' + i + '" title="' + i + '星">★</button>';
+        }
+        el.innerHTML = html;
+        $$('.star-btn', el).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var v = parseInt(this.dataset.val);
+                $$('.star-btn', el).forEach(function (b, idx) {
+                    b.classList.toggle('is-active', idx < v);
+                });
+                el.dataset.value = v;
+            });
+        });
+        el.dataset.value = initialVal || 0;
+    }
+
+    function bindRatingEvents() {
+        // 打分按钮
+        $$('.sb-rate-btn').forEach(function (btn) {
+            if (btn._bound) return;
+            btn._bound = true;
+            btn.addEventListener('click', function () {
+                showScorePicker(this.dataset.target, this.dataset.to);
+            });
+        });
+
+        // 点评标签切换
+        $$('.rev-tab').forEach(function (tab) {
+            if (tab._bound) return;
+            tab._bound = true;
+            tab.addEventListener('click', function () {
+                $$('.rev-tab').forEach(function (t) { t.classList.remove('is-active'); });
+                this.classList.add('is-active');
+                currentRevTab = this.dataset.revtab;
+                renderRevList(currentRevTab);
+            });
+        });
+
+        // 发表点评
+        var addBtn = $('#rev-add-btn');
+        if (addBtn && !addBtn._bound) {
+            addBtn._bound = true;
+            addBtn.addEventListener('click', function () {
+                var nameInput = $('#rev-name-input');
+                var catSel = $('#rev-cat-select');
+                var commentInput = $('#rev-comment-input');
+                var starEl = $('#rev-star-input');
+
+                var name = (nameInput.value || '').trim();
+                if (!name) { toast('写个店名吧'); nameInput.focus(); return; }
+                var rating = parseInt(starEl.dataset.value) || 5;
+
+                LP.Rating.addReview({
+                    name: name,
+                    category: catSel.value,
+                    rating: rating,
+                    comment: commentInput.value.trim(),
+                    who: 'both'
+                });
+
+                nameInput.value = '';
+                commentInput.value = '';
+                buildStarPicker('rev-star-input', 0);
+                toast('点评发表 ✓');
+                renderRevList(currentRevTab || 'all');
+            });
+        }
+    }
+
+    function showScorePicker(scoreKey, toWho) {
+        var cpl = state.config.couple;
+        var toName = toWho === 'a' ? ((cpl && cpl.a && cpl.a.name) || '阿蛙') : ((cpl && cpl.b && cpl.b.name) || '阿狗');
+
+        var html = '<div class="sheet editor-sheet is-open" id="score-picker-sheet">';
+        html += '<div class="sheet-panel editor-panel"><div class="sheet-head">';
+        html += '<h3>给 ' + esc(toName) + ' 打分</h3>';
+        html += '<button class="icon-btn sp-close-btn" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+        html += '</div><div class="editor-body"><div class="ed-group" style="text-align:center;">';
+
+        html += '<div class="big-star-picker" id="big-star-picker"></div>';
+
+        html += '<label class="ed-row" style="margin-top:14px;"><span class="ed-label">想说的话</span>';
+        html += '<textarea class="ed-input" id="score-comment" rows="2" placeholder="夸夸 Ta 或者吐槽一下…"></textarea></label>';
+
+        html += '</div></div><div class="editor-foot" style="text-align:center;">';
+        html += '<button class="btn-primary" id="score-submit-btn">提交打分</button>';
+        html += '</div></div></div>';
+
+        var old = document.getElementById('score-picker-sheet');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        var sheet = wrap.firstElementChild;
+        document.body.appendChild(sheet);
+
+        buildStarPicker('big-star-picker', 5);
+
+        var fromWho = scoreKey.split('_')[0]; // a or b
+
+        $('#score-submit-btn').addEventListener('click', function () {
+            var starEl = $('#big-star-picker');
+            var score = parseInt(starEl.dataset.value) || 5;
+            var comment = $('#score-comment').value.trim();
+
+            LP.Rating.addScore(fromWho, toWho, score, comment);
+            toast('打分成功 ✓');
+            sheet.remove();
+            renderRating();
+        });
+
+        $('.sp-close-btn').addEventListener('click', function () { sheet.remove(); });
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -1367,6 +1586,7 @@
         renderPeriod();
         renderMood();
         renderSchedule();
+        renderRating();
     }
 
     // 挂到 LP 上供 core.js 调用
