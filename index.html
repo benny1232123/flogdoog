@@ -74,6 +74,7 @@
                 <a href="#rating" class="nav-link" data-target="rating">点评</a>
                 <a href="#resources" class="nav-link" data-target="resources">资料</a>
                 <a href="#footprint" class="nav-link" data-target="footprint">足迹</a>
+                <a href="#room" class="nav-link" data-target="room">小屋</a>
             </nav>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -393,6 +394,63 @@
             <div class="fp-list" id="fp-list"></div>
         </section>
 
+        <!-- ---------- 虚拟房间 ---------- -->
+        <section class="section" id="room">
+            <div class="sec-head reveal">
+                <h2 class="sec-title">🏠 我们的小屋</h2>
+                <p class="sec-sub">一起装扮 · 互动玩耍</p>
+            </div>
+
+            <!-- 房间画布 -->
+            <div class="room-canvas reveal" id="room-canvas">
+                <!-- 家具层（动态生成） -->
+                <div class="room-furniture" id="room-furniture"></div>
+
+                <!-- 宠物层（动态生成） -->
+                <div class="room-pets" id="room-pets"></div>
+
+                <!-- Avatar 层 -->
+                <div class="room-avatar room-avatar-a" id="room-avatar-a" title="阿蛙（拖动移动）">
+                    <div class="avatar-body">🐸</div>
+                    <div class="avatar-name">阿蛙</div>
+                </div>
+                <div class="room-avatar room-avatar-b" id="room-avatar-b" title="阿狗（拖动移动）">
+                    <div class="avatar-body">🐕</div>
+                    <div class="avatar-name">阿狗</div>
+                </div>
+
+                <!-- 互动特效层 -->
+                <div class="room-effects" id="room-effects"></div>
+
+                <!-- 房间地板装饰 -->
+                <div class="room-floor" aria-hidden="true"></div>
+            </div>
+
+            <!-- 互动按钮 -->
+            <div class="room-actions reveal">
+                <button class="room-action-btn" id="ra-play-ball" type="button">🎾 打球</button>
+                <button class="room-action-btn" id="ra-dance" type="button">💃 跳舞</button>
+                <button class="room-action-btn" id="ra-wave" type="button">👋 挥手</button>
+                <button class="room-action-btn" id="ra-hug" type="button">🤗 抱抱</button>
+            </div>
+
+            <!-- 装扮控制面板 -->
+            <div class="room-panel reveal">
+                <details open>
+                    <summary>🎨 墙壁颜色</summary>
+                    <div class="panel-grid wall-colors" id="wall-colors"></div>
+                </details>
+                <details>
+                    <summary>🪑 家具摆设</summary>
+                    <div class="panel-grid furn-list" id="furn-list"></div>
+                </details>
+                <details>
+                    <summary>🐾 宠物</summary>
+                    <div class="panel-grid pet-list" id="pet-list"></div>
+                </details>
+            </div>
+        </section>
+
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
                 <svg viewBox="0 0 32 29"><path d="M16 28S1 18.5 1 9.8A8.8 8.8 0 0 1 16 4.4 8.8 8.8 0 0 1 31 9.8C31 18.5 16 28 16 28z"/></svg>
@@ -447,6 +505,10 @@
         <a href="#footprint" class="tab" data-target="footprint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22s-8-4.5-8-11.8A8.8 8.8 0 0112 4.4a8.8 8.8 0 018 7.4c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="11" r="3"/></svg>
             <span>足迹</span>
+        </a>
+        <a href="#room" class="tab" data-target="room">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+            <span>小屋</span>
         </a>
     </nav>
 
@@ -552,6 +614,7 @@
     <script src="js/rating.js"></script>
     <script src="js/resources.js"></script>
     <script src="js/footprint.js"></script>
+    <script src="js/room.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>
 </body>

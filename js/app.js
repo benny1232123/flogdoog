@@ -1836,6 +1836,228 @@
     }
 
     /* =========================================================
+       模块 13 — 虚拟房间 + Avatar + 宠物 + 互动（新增）
+       ========================================================= */
+    function renderRoom() {
+        if (!LP.Room) return;
+        var R = LP.Room;
+        var data = R.load();
+
+        // 应用墙壁颜色
+        var canvas = $('#room-canvas');
+        if (canvas) {
+            var wallCfg = R.WALL_COLORS.find(function (w) { return w.id === data.wallColor; }) || R.WALL_COLORS[0];
+            canvas.style.background = wallCfg.bg;
+            // 夜间模式文字变亮
+            if (data.wallColor === 'night') canvas.classList.add('is-dark');
+            else canvas.classList.remove('is-dark');
+        }
+
+        // 渲染家具
+        renderFurniture(data, R);
+
+        // 渲染宠物
+        renderPets(data, R);
+
+        // 定位 Avatar
+        positionAvatar('a', data.avatarA);
+        positionAvatar('b', data.avatarB);
+
+        // 装扮控制面板
+        renderRoomPanel(data, R);
+
+        // 绑定互动事件
+        bindRoomEvents(data, R);
+    }
+
+    function renderFurniture(data, R) {
+        var container = $('#room-furniture');
+        if (!container) return;
+        var positions = {
+            plant: { bottom: '5%', left: '5%', fontSize: '2rem' },
+            lamp: { top: '8%', right: '10%', fontSize: '1.6rem' },
+            bookshelf: { bottom: '12%', right: '6%', fontSize: '1.8rem' },
+            cushion: { bottom: '18%', left: '50%', transform: 'translateX(-50%)', fontSize: '1.4rem' },
+            photo: { top: '15%', left: '50%', transform: 'translateX(-50%)', fontSize: '1.5rem' },
+            rug: { bottom: '2%', left: '50%', transform: 'translateX(-50%)', fontSize: '2.2rem' },
+            window: { top: '10%', left: '8%', fontSize: '2rem' },
+            clock: { top: '12%', right: '25%', fontSize: '1.3rem' }
+        };
+
+        container.innerHTML = data.furniture.map(function (fid) {
+            var furn = R.FURNITURE.find(function (f) { return f.id === fid; });
+            if (!furn) return '';
+            var pos = positions[fid] || { bottom: '10%', left: '10%', fontSize: '1.5rem' };
+            var styleStr = Object.keys(pos).map(function (k) { return k + ':' + pos[k]; }).join(';');
+            return '<span class="room-furn-item" style="' + styleStr + '" title="' + furn.label + '">' + furn.icon + '</span>';
+        }).join('');
+    }
+
+    function renderPets(data, R) {
+        var container = $('#room-pets');
+        if (!container) return;
+        var spots = [
+            { x: 15, y: 72 }, { x: 75, y: 70 }, { x: 45, y: 78 }, { x: 60, y: 75 }
+        ];
+
+        container.innerHTML = data.pets.map(function (pid, idx) {
+            var pet = R.PETS.find(function (p) { return p.id === pid; });
+            if (!pet) return '';
+            var spot = spots[idx] || spots[0];
+            return '<span class="room-pet" style="left:' + spot.x + '%;top:' + spot.y + '%" title="' + pet.label + '">' +
+                '<span class="pet-emoji">' + pet.emoji + '</span>' +
+                '<span class="pet-name">' + pet.label + '</span>' +
+            '</span>';
+        }).join('');
+    }
+
+    function positionAvatar(who, avatarData) {
+        var el = $('#room-avatar-' + who);
+        if (!el) return;
+        el.style.left = avatarData.x + '%';
+        el.style.top = avatarData.y + '%';
+
+        // 姿态
+        el.className = 'room-avatar room-avatar-' + who + ' pose-' + (avatarData.pose || 'idle');
+    }
+
+    function renderRoomPanel(data, R) {
+        // 墙壁颜色
+        var wcEl = $('#wall-colors');
+        if (wcEl) {
+            wcEl.innerHTML = R.WALL_COLORS.map(function (w) {
+                var active = w.id === data.wallColor ? ' is-active' : '';
+                return '<button type="button" class="wall-opt' + active + '" data-wall="' + w.id + '" style="background:' + w.bg + '" title="' + w.label + '"></button>';
+            }).join('');
+            $$('.wall-opt', wcEl).forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    R.setWallColor(this.dataset.wall);
+                    renderRoom();
+                });
+            });
+        }
+
+        // 家具
+        var furnEl = $('#furn-list');
+        if (furnEl) {
+            furnEl.innerHTML = R.FURNITURE.map(function (f) {
+                var has = data.furniture.indexOf(f.id) >= 0;
+                return '<button type="button" class="furn-opt' + (has ? ' is-active' : '') + '" data-furn="' + f.id + '">' +
+                    f.icon + ' ' + f.label + (has ? ' ✓' : '') + '</button>';
+            }).join('');
+            $$('.furn-opt', furnEl).forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    R.toggleFurniture(this.dataset.furn);
+                    renderRoom();
+                });
+            });
+        }
+
+        // 宠物
+        var petEl = $('#pet-list');
+        if (petEl) {
+            petEl.innerHTML = R.PETS.map(function (p) {
+                var has = data.pets.indexOf(p.id) >= 0;
+                return '<button type="button" class="pet-opt' + (has ? ' is-active' : '') + '" data-pet="' + p.id + '">' +
+                    p.emoji + ' ' + p.label + (has ? ' ✓' : '') + '</button>';
+            }).join('');
+            $$('.pet-opt', petEl).forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    R.togglePet(this.dataset.pet);
+                    renderRoom();
+                });
+            });
+        }
+    }
+
+    function bindRoomEvents(data, R) {
+        // 打球动画
+        var playBallBtn = $('#ra-play-ball');
+        if (playBallBtn && !playBallBtn._bound) {
+            playBallBtn._bound = true;
+            playBallBtn.addEventListener('click', function () { triggerInteraction('ball'); });
+        }
+
+        // 跳舞动画
+        var danceBtn = $('#ra-dance');
+        if (danceBtn && !danceBtn._bound) {
+            danceBtn._bound = true;
+            danceBtn.addEventListener('click', function () { triggerInteraction('dance'); });
+        }
+
+        // 挥手
+        var waveBtn = $('#ra-wave');
+        if (waveBtn && !waveBtn._bound) {
+            waveBtn._bound = true;
+            waveBtn.addEventListener('click', function () { triggerInteraction('wave'); });
+        }
+
+        // 抱抱
+        var hugBtn = $('#ra-hug');
+        if (hugBtn && !hugBtn._bound) {
+            hugBtn._bound = true;
+            hugBtn.addEventListener('click', function () { triggerInteraction('hug'); });
+        }
+
+        // Avatar 拖动（简化版：点击移动到随机位置）
+        $$('.room-avatar').forEach(function (av) {
+            if (av._dragBound) return;
+            av._dragBound = true;
+            av.addEventListener('click', function () {
+                var who = this.id.replace('room-avatar-', '');
+                var newX = 20 + Math.round(Math.random() * 55); // 20-75%
+                var newY = 45 + Math.round(Math.random() * 30); // 45-75%
+                R.moveAvatar(who, newX, newY);
+                positionAvatar(who, R.load()[who === 'a' ? 'avatarA' : 'avatarB']);
+                toast((who === 'a' ? '阿蛙' : '阿狗') + ' 换了个位置 🎉');
+            });
+        });
+    }
+
+    /** 触发互动特效 */
+    function triggerInteraction(type) {
+        var effectsEl = $('#room-effects');
+        if (!effectsEl) return;
+
+        var avA = $('#room-avatar-a');
+        var avB = $('#room-avatar-b');
+
+        switch (type) {
+            case 'ball':
+                effectsEl.innerHTML = '<div class="effect-ball">🎾</div>';
+                avA.classList.add('pose-jump'); avB.classList.add('pose-jump');
+                setTimeout(function () { avA.classList.remove('pose-jump'); avB.classList.remove('pose-jump'); effectsEl.innerHTML = ''; }, 1500);
+                toast('🎾 阿蛙和阿狗在打球！');
+                break;
+
+            case 'dance':
+                effectsEl.innerHTML = '<div class="effect-music">🎵💃🕺</div>';
+                avA.classList.add('pose-dance'); avB.classList.add('pose-dance');
+                setTimeout(function () { avA.classList.remove('pose-dance'); avB.classList.remove('pose-dance'); effectsEl.innerHTML = ''; }, 3000);
+                toast('💃 阿蛙和阿狗在跳舞！');
+                break;
+
+            case 'wave':
+                avB.classList.add('pose-wave');
+                setTimeout(function () { avB.classList.remove('pose-wave'); }, 1200);
+                toast('👋 阿狗在挥手！');
+                break;
+
+            case 'hug':
+                // 两个 Avatar 靠近
+                var data = LP.Room.load();
+                LP.Room.moveAvatar('a', 42, 58);
+                LP.Room.moveAvatar('b', 54, 58);
+                positionAvatar('a', LP.Room.load().avatarA);
+                positionAvatar('b', LP.Room.load().avatarB);
+                effectsEl.innerHTML = '<div class="effect-heart">❤️</div>';
+                setTimeout(function () { effectsEl.innerHTML = ''; }, 2000);
+                toast('🤗 抱抱！阿蛙和阿狗靠在一起了～');
+                break;
+        }
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -1853,6 +2075,7 @@
         renderRating();
         renderResources();
         renderFootprint();
+        renderRoom();
     }
 
     // 挂到 LP 上供 core.js 调用

@@ -116,7 +116,8 @@
         if (LP.Sync && LP.Sync.isConfigured()) {
             const obj = {
                 site: working.site, couple: working.couple,
-                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery
+                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
+                room: (window.LP && LP.Room) ? LP.Room.exportData() : null
             };
             LP.Sync.push(obj).then((ok) => { if (ok) toast('已同步到云端'); });
         }
@@ -413,7 +414,8 @@
             // 先把本机当前内容上传到云端（首次设同步时也能把完整内容传上去），再拉取合并
             const obj = {
                 site: working.site, couple: working.couple,
-                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery
+                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
+                room: (window.LP && LP.Room) ? LP.Room.exportData() : null
             };
             const ok = await LP.Sync.push(obj);
             if (!ok) { toast('上传失败，检查地址/密钥或网络'); return; }

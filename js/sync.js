@@ -43,6 +43,10 @@
             // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回 null
             if (data && typeof data === 'object' && Object.keys(data).length) {
                 store.set(OVERLAY_KEY, data); // 覆盖本机覆盖层，供 Editor.applyOverlay 读取
+                // 虚拟房间的装扮也跟着覆盖层一起同步（独立键 lp_room）
+                if (data.room && window.LP && LP.Room) {
+                    try { LP.Room.importData(data.room); } catch (e) { console.warn('[LP] 房间数据同步失败：', e); }
+                }
                 return data;
             }
             return null;

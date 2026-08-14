@@ -2130,3 +2130,198 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .fp-stat-num { font-size: 1.6rem; }
     .fp-card { padding: 12px; }
 }
+
+/* =========================================================
+   虚拟房间 + Avatar + 宠物 + 互动 样式
+   ========================================================= */
+
+/* 房间画布 */
+.room-canvas {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 380px;
+    margin: 0 auto 20px;
+    border-radius: 20px;
+    border: 3px solid rgba(232,137,154,.15);
+    overflow: hidden;
+    background: linear-gradient(135deg,#FFF7F0,#FFE8D6);
+    box-shadow: inset 0 0 60px rgba(255,255,255,.5), 0 8px 32px rgba(180,120,100,.12);
+}
+.room-canvas.is-dark { color: #fff; }
+
+/* 地板 */
+.room-floor {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(180deg, transparent, rgba(139,90,43,.08));
+    border-top: 2px solid rgba(139,90,43,.1);
+}
+
+/* 家具 */
+.room-furniture { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.room-furn-item {
+    position: absolute;
+    cursor: default;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.1));
+    animation: furnIn .4s ease both;
+}
+@keyframes furnIn { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+
+/* 宠物 */
+.room-pets { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.room-pet {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: default;
+    transform: translate(-50%, -50%);
+    animation: petBounce 2s ease-in-out infinite;
+}
+.room-pet:nth-child(even) { animation-delay: -1s; }
+@keyframes petBounce {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-6px); }
+}
+.pet-emoji { font-size: 1.6rem; line-height: 1; }
+.pet-name { font-size: .6rem; color: var(--ink-3); margin-top: 1px; }
+
+/* Avatar */
+.room-avatar {
+    position: absolute;
+    z-index: 5;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -50%);
+    transition: left .5s ease, top .5s ease;
+}
+.avatar-body {
+    font-size: 2.8rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.15));
+    transition: transform .3s;
+}
+.avatar-name {
+    font-size: .68rem;
+    font-weight: 600;
+    margin-top: 2px;
+    background: rgba(255,255,255,.7);
+    padding: 1px 8px;
+    border-radius: 10px;
+}
+
+/* Avatar 姿态 */
+.room-avatar.pose-idle .avatar-body { animation: idleBob 2s ease-in-out infinite; }
+.room-avatar.pose-jump .avatar-body { animation: jump .5s ease 3; }
+.room-avatar.pose-dance .avatar-body { animation: dance .6s ease infinite; }
+.room-avatar.pose-wave .avatar-body { animation: wave .4s ease 3; }
+
+@keyframes idleBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+@keyframes jump { 0%{transform:translateY(0)scale(1)} 50%{transform:translateY(-25px)scale(1.1)} 100%{transform:translateY(0)scale(1)} }
+@keyframes dance { 0%{transform:rotate(0) translateY(0)} 25%{transform:rotate(-15deg) translateY(-8px)} 50%{transform:rotate(0) translateY(0)} 75%{transform:rotate(15deg) translateY(-8px)} 100%{transform:rotate(0) translateY(0)} }
+@keyframes wave { 0%{transform:rotate(0)} 33%{transform:rotate(20deg)} 66%{transform:rotate(-15deg)} 100%{transform:rotate(0)} }
+
+/* 互动按钮 */
+.room-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    max-width: 500px;
+    margin: 0 auto 18px;
+    flex-wrap: wrap;
+}
+.room-action-btn {
+    padding: 10px 22px;
+    border: 2px solid rgba(232,137,154,.2);
+    border-radius: 20px;
+    background: var(--surface-solid, #fff);
+    font-size: .9rem;
+    cursor: pointer;
+    transition: all .15s;
+}
+.room-action-btn:hover {
+    border-color: var(--accent);
+    background: rgba(232,137,154,.08);
+    transform: translateY(-2px);
+}
+.room-action-btn:active { transform: translateY(0) scale(.96); }
+
+/* 特效层 */
+.room-effects { position: absolute; inset: 0; pointer-events: none; z-index: 10; display:flex;align-items:center;justify-content:center; }
+.effect-ball { font-size: 2rem; animation: ballFly 1.5s ease-out forwards; }
+.effect-music { font-size: 1.4rem; animation: musicPop .8s ease-out; opacity: 0; }
+.effect-heart { font-size: 3rem; animation: heartPop 2s ease-out forwards; }
+
+@keyframes ballFly { from { transform: scale(0) translateY(30px); opacity: 0; } to { transform: scale(1.5) translateY(-40px); opacity: 1; } }
+@keyframes musicPop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1.3); opacity: 1; } }
+@keyframes heartPop { from { transform: scale(0) rotate(-20deg); opacity: 0; } 50% { transform: scale(1.4) rotate(10deg); opacity: 1; } to { transform: scale(0) rotate(0); opacity: 0; } }
+
+/* 装扮控制面板 */
+.room-panel {
+    max-width: 540px;
+    margin: 0 auto;
+}
+.room-panel details {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 12px;
+    padding: 0 14px 14px;
+    margin-bottom: 10px;
+}
+.room-panel summary {
+    padding: 12px 0;
+    font-weight: 600;
+    font-size: .88rem;
+    cursor: pointer;
+    list-style: none;
+    color: var(--ink-1);
+}
+.room-panel summary::-webkit-details-marker { display: none; }
+.room-panel summary::before { content: '▸ '; margin-right: 6px; color: var(--accent); }
+.room-panel[open] > summary::before { content: '▾ '; }
+.panel-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* 墙壁颜色选择 */
+.wall-opt {
+    width: 48px; height: 36px;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s;
+}
+.wall-opt:hover { transform: scale(1.08); }
+.wall-opt.is-active { border-color: #333; box-shadow: 0 0 0 2px rgba(232,137,154,.4); }
+
+/* 家具/宠物选项 */
+.furn-opt, .pet-opt {
+    padding: 7px 14px;
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 16px;
+    background: transparent;
+    font-size: .84rem;
+    cursor: pointer;
+    transition: all .15s;
+}
+.furn-opt:hover, .pet-opt:hover { background: rgba(0,0,0,.03); }
+.furn-opt.is-active, .pet-opt.is-active {
+    background: rgba(232,137,154,.1);
+    border-color: rgba(232,137,154,.35);
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .room-canvas { height: 320px; border-radius: 16px; }
+    .avatar-body { font-size: 2.2rem; }
+    .room-actions { gap: 6px; margin: 0 8px 14px; }
+    .room-action-btn { padding: 8px 16px; font-size: .82rem; }
+    .room-panel { margin: 0 8px; }
+}
