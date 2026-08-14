@@ -229,7 +229,7 @@
         var todayISO = fmtISO(today);
 
         // 构建该月所有日期的经期状态映射
-        var periodMap = {}; // iso -> { flow, recordId }
+        var periodMap = {}; // iso -> { flow, recordId, symptoms }
         data.records.forEach(function (r) {
             var s = parseISO(r.startDate);
             var e = parseISO(r.endDate);
@@ -237,12 +237,12 @@
             var cur = new Date(s);
             while (cur <= e) {
                 var key = fmtISO(cur);
-                periodMap[key] = { flow: r.flow, recordId: r.id };
+                periodMap[key] = { flow: r.flow, recordId: r.id, symptoms: r.symptoms || [] };
                 cur.setDate(cur.getDate() + 1);
             }
         });
 
-        // 也标记预测的下次经期
+        // 也标记预测的下次经期 & 排卵期
         var pred = predict(data);
         if (pred.nextPeriod && pred.nextPeriodEnd) {
             var ps = parseISO(pred.nextPeriod);
@@ -253,6 +253,19 @@
                     var pk = fmtISO(pc);
                     if (!periodMap[pk]) periodMap[pk] = { predicted: true, flow: '预测' };
                     pc.setDate(pc.getDate() + 1);
+                }
+            }
+        }
+        if (pred.ovulationWindow && pred.ovulationWindow[0] && pred.ovulationWindow[1]) {
+            var os = parseISO(pred.ovulationWindow[0]);
+            var oe = parseISO(pred.ovulationWindow[1]);
+            if (os && oe) {
+                var oc = new Date(os);
+                while (oc <= oe) {
+                    var ok = fmtISO(oc);
+                    if (!periodMap[ok]) periodMap[ok] = { ovulation: true, flow: null };
+                    else periodMap[ok].ovulation = true;
+                    oc.setDate(oc.getDate() + 1);
                 }
             }
         }
@@ -270,9 +283,11 @@
                 date: d,
                 iso: iso,
                 isToday: iso === todayISO,
-                isPeriod: !!pinfo && !pinfo.predicted,
+                isPeriod: !!(pinfo && pinfo.recordId),
                 isPredicted: !!(pinfo && pinfo.predicted),
+                isOvulation: !!(pinfo && pinfo.ovulation),
                 flow: pinfo ? pinfo.flow : null,
+                symptoms: pinfo ? (pinfo.symptoms || []) : [],
                 recordId: pinfo ? pinfo.recordId : null,
                 isFuture: dateObj > today
             });
@@ -282,6 +297,37 @@
         if (week.length > 0) { while (week.length < 7) week.push(null); weeks.push(week); }
 
         return { year: year, month: month, weeks: weeks };
+    }
+
+    /**
+     * 周期洞察：规律性、波动范围、常见症状等
+     */
+    function getInsights(data) {
+        data = data || load();
+        var rs = data.records;
+        var gaps = [];
+        for (var i = 1; i < rs.length; i++) {
+            var a = parseISO(rs[i - 1].startDate), b = parseISO(rs[i].startDate);
+            if (a && b) { var g = Math.round((b - a) / 86400000); if (g >= 18 && g <= 45) gaps.push(g); }
+        }
+        var res = { count: rs.length, gaps: gaps, avgCycle: data.config.cycleLen, avgDuration: data.config.duration, stdDev: null, regularity: 'unknown', minGap: null, maxGap: null, topSymptoms: [] };
+
+        if (gaps.length >= 2) {
+            var mean = gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length;
+            var variance = gaps.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / gaps.length;
+            var sd = Math.sqrt(variance);
+            res.stdDev = Math.round(sd * 10) / 10;
+            res.minGap = Math.min.apply(null, gaps);
+            res.maxGap = Math.max.apply(null, gaps);
+            res.regularity = sd <= 2.5 ? 'regular' : (sd <= 5 ? 'fair' : 'irregular');
+        }
+
+        var symCount = {};
+        rs.forEach(function (r) {
+            (r.symptoms || []).forEach(function (s) { if (s && s !== '无') symCount[s] = (symCount[s] || 0) + 1; });
+        });
+        res.topSymptoms = Object.keys(symCount).sort(function (a, b) { return symCount[b] - symCount[a]; }).slice(0, 3);
+        return res;
     }
 
     // ---- 导出 / 导入（给同步用）----
@@ -339,6 +385,7 @@
         delRecord: delRecord,
         predict: predict,
         getCalendarMonth: getCalendarMonth,
+        getInsights: getInsights,
         exportData: exportData,
         importData: importData,
         recalcConfig: recalcConfig,

@@ -755,6 +755,21 @@
             };
             const ph = phaseLabels[pred.phase] || phaseLabels.unknown;
             const confLabel = pred.confidence === 'high' ? '高' : (pred.confidence === 'medium' ? '中' : '低（记录更多数据后更准）');
+            const insights = P.getInsights(data);
+            const regLabel = insights.regularity === 'regular' ? '规律 ✅'
+                : insights.regularity === 'fair' ? '略不规律'
+                : insights.regularity === 'irregular' ? '不规律' : '数据不足';
+            const regRange = (insights.minGap != null) ? (insights.minGap + '–' + insights.maxGap + '天') : '';
+            const ovWin = (pred.ovulationWindow && pred.ovulationWindow[0])
+                ? (formatDisplayDate(pred.ovulationWindow[0]) + '~' + formatDisplayDate(pred.ovulationWindow[1]))
+                : (pred.nextOvulation ? formatDisplayDate(pred.nextOvulation) : '?');
+            const symText = insights.topSymptoms.length ? ' · 常见: ' + insights.topSymptoms.join('、') : '';
+
+            let remText = '', remClass = '';
+            if (pred.phase === 'period') { remText = '🌸 经期进行中，第 ' + (pred.cycleDay || 1) + ' 天 · 多休息、少碰凉、多喝温水～'; remClass = 'rem-period'; }
+            else if (pred.daysUntilPeriod != null && pred.daysUntilPeriod >= 0 && pred.daysUntilPeriod <= 3) { remText = '💗 还有 ' + pred.daysUntilPeriod + ' 天来月经，提前备好卫生巾～'; remClass = 'rem-soon'; }
+            else if (pred.phase === 'ovulation') { remText = '💛 排卵期：这几天易疲惫也易饿，照顾好自己～'; remClass = 'rem-ovu'; }
+            else if (pred.daysUntilPeriod != null && pred.daysUntilPeriod > 3 && pred.daysUntilPeriod <= 8) { remText = '📅 预计 ' + pred.daysUntilPeriod + ' 天后月经，可以提前安排好～'; remClass = 'rem-prep'; }
 
             predictEl.innerHTML = `
                 <div class="predict-card">
@@ -770,14 +785,19 @@
                         </div>
                         <div class="predict-item">
                             <span class="predict-label">预计下次</span>
-                            <span class="predict-val">${pred.nextPeriod ? formatDisplayDate(pred.nextPeriod) : '?'}<small></small></span>
+                            <span class="predict-val">${pred.nextPeriod ? formatDisplayDate(pred.nextPeriod) : '?'}</span>
                         </div>
                         <div class="predict-item">
                             <span class="predict-label">排卵期</span>
-                            <span class="predict-val">${pred.nextOvulation ? formatDisplayDate(pred.nextOvulation) : '?'}<small>前后</small></span>
+                            <span class="predict-val">${ovWin}<small>易孕/注意</small></span>
+                        </div>
+                        <div class="predict-item">
+                            <span class="predict-label">周期规律</span>
+                            <span class="predict-val">${regLabel}<small>${regRange}</small></span>
                         </div>
                     </div>
-                    <div class="predict-meta">平均周期 ${data.config.cycleLen}天 · 平均经期 ${data.config.duration}天 · 准确度${confLabel}</div>
+                    <div class="predict-meta">平均周期 ${data.config.cycleLen}天 · 平均经期 ${data.config.duration}天 · 准确度${confLabel}${symText}</div>
+                    ${remText ? '<div class="period-reminder ' + remClass + '">' + remText + '</div>' : ''}
                 </div>`;
         }
 
@@ -813,9 +833,13 @@
                 var cls = 'cal-day';
                 if (cell.isToday) cls += ' is-today';
                 if (cell.isPeriod) cls += ' is-period';
-                if (cell.isPredicted) cls += ' is-predicted';
+                if (cell.isPredicted && !cell.isPeriod) cls += ' is-predicted';
+                if (cell.isOvulation && !cell.isPeriod) cls += ' is-ovulation';
                 if (cell.isFuture) cls += ' is-future';
-                html += '<button class="' + cls + '" data-iso="' + cell.iso + '" type="button">' + cell.date + '</button>';
+                if (cell.flow === '较多') cls += ' flow-heavy';
+                else if (cell.flow === '少量') cls += ' flow-light';
+                var symDot = (cell.symptoms && cell.symptoms.length && cell.symptoms[0] !== '无') ? '<i class="cal-dot"></i>' : '';
+                html += '<button class="' + cls + '" data-iso="' + cell.iso + '" type="button">' + cell.date + symDot + '</button>';
             });
             html += '</div>';
         });

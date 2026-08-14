@@ -1213,7 +1213,7 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 
 .predict-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
     gap: 8px;
     margin-bottom: 12px;
 }
@@ -1244,7 +1244,22 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     text-align: center;
     font-size: .76rem;
     color: var(--ink-3);
+    margin-top: 4px;
 }
+.period-reminder {
+    margin-top: 14px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: .82rem;
+    line-height: 1.5;
+    background: color-mix(in srgb, var(--rose) 10%, var(--surface-solid));
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+}
+.period-reminder.rem-soon { background: color-mix(in srgb, var(--rose) 16%, var(--surface-solid)); border-color: var(--line-strong); }
+.period-reminder.rem-period { background: color-mix(in srgb, #f5d5da 60%, var(--surface-solid)); border-color: rgba(214,69,90,.3); }
+.period-reminder.rem-ovu { background: color-mix(in srgb, var(--gold) 16%, var(--surface-solid)); border-color: rgba(227,177,131,.45); }
+.period-reminder.rem-prep { background: color-mix(in srgb, var(--sage) 14%, var(--surface-solid)); border-color: var(--line); }
 
 /* 快捷操作按钮 */
 .period-actions {
@@ -1342,8 +1357,28 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 .cal-day.is-predicted {
     background: rgba(214, 69, 90, .1);
     color: #d6455a;
+    border: 1px dashed rgba(214, 69, 90, .5);
+}
+.cal-day.is-ovulation {
+    background: rgba(227, 177, 131, .22);
+    color: #b9772f;
+    font-weight: 600;
 }
 .cal-day.is-future { opacity: .45; }
+
+/* 经期流量深浅 */
+.cal-day.is-period.flow-light { background: #fae3e8; }
+.cal-day.is-period.flow-heavy { background: #eeb3bf; color: #9c2f43; }
+
+/* 症状小圆点 */
+.cal-day .cal-dot {
+    position: absolute;
+    bottom: 3px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #d6455a;
+}
 
 /* 图例 */
 .cal-legend {
@@ -1362,6 +1397,8 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 }
 .dot-period { background: #f5d5da; border: 1px solid #d6455a; }
 .dot-predicted { background: rgba(214, 69, 90, .15); border: 1px solid rgba(214, 69, 90, .4); }
+.dot-ovulation { background: rgba(227, 177, 131, .5); border: 1px solid #b9772f; }
+.dot-symptom { background: #d6455a; }
 .dot-today { background: transparent; border: 2px solid var(--accent, #e8899a); }
 
 /* 历史记录列表 */
