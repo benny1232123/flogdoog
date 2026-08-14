@@ -1144,10 +1144,10 @@
         var S = LP.Schedule;
 
         // 待办面板
-        renderSchedPanel('todo', S.getPending('todo').concat(S.load().events.filter(function (e) { return e.type === 'todo' && e.done; })));
+        renderSchedPanel('todo', S.getPending('todo').concat(S.load().events.filter(function (e) { return e.type === 'todo' && e.done; })), S);
 
         // 购物面板
-        renderSchedPanel('shopping', S.getPending('shopping').concat(S.load().events.filter(function (e) { return e.type === 'shopping' && e.done; })));
+        renderSchedPanel('shopping', S.getPending('shopping').concat(S.load().events.filter(function (e) { return e.type === 'shopping' && e.done; })), S);
 
         // 日历面板
         renderSchedCalendar();
@@ -1156,7 +1156,7 @@
         bindSchedEvents();
     }
 
-    function renderSchedPanel(type, items) {
+    function renderSchedPanel(type, items, S) {
         var panel = $('#sched-panel-' + type);
         if (!panel) return;
         var typeInfo = S.TYPES[type] || S.TYPES.todo;
