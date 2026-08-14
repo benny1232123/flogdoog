@@ -69,6 +69,7 @@
                 <a href="#story" class="nav-link" data-target="story">时间轴</a>
                 <a href="#wall" class="nav-link" data-target="wall">照片墙</a>
                 <a href="#board" class="nav-link" data-target="board">留言板</a>
+                <a href="#period" class="nav-link" data-target="period">经期</a>
             </nav>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -226,6 +227,45 @@
             <div class="msg-list" id="msg-list"></div>
         </section>
 
+        <!-- ---------- 经期追踪 ---------- -->
+        <section class="section" id="period">
+            <div class="sec-head reveal">
+                <h2 class="sec-title">🩺 经期记录</h2>
+                <p class="sec-sub">记录 · 预测 · 照顾好自己</p>
+            </div>
+
+            <!-- 预测卡片 -->
+            <div class="period-predict reveal" id="period-predict"></div>
+
+            <!-- 快捷操作 -->
+            <div class="period-actions reveal">
+                <button class="btn-primary" id="period-start-btn" type="button">🔴 今天来了</button>
+                <button class="btn-ghost" id="period-end-btn" type="button">✅ 今天结束</button>
+            </div>
+
+            <!-- 日历 -->
+            <div class="period-cal-wrap reveal">
+                <div class="period-cal-header">
+                    <button class="cal-nav" id="cal-prev" type="button" aria-label="上个月">‹</button>
+                    <span class="cal-month" id="cal-month"></span>
+                    <button class="cal-nav" id="cal-next" type="button" aria-label="下个月">›</button>
+                    <button class="btn-ghost cal-today" id="cal-today" type="button">今天</button>
+                </div>
+                <div class="period-cal-grid" id="period-calendar"></div>
+                <div class="cal-legend">
+                    <span class="legend-item"><i class="dot dot-period"></i> 经期</span>
+                    <span class="legend-item"><i class="dot dot-predicted"></i> 预测</span>
+                    <span class="legend-item"><i class="dot dot-today"></i> 今天</span>
+                </div>
+            </div>
+
+            <!-- 记录列表 -->
+            <div class="period-history reveal">
+                <h3 class="period-hist-title">历史记录</h3>
+                <div class="period-list" id="period-list"></div>
+            </div>
+        </section>
+
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
                 <svg viewBox="0 0 32 29"><path d="M16 28S1 18.5 1 9.8A8.8 8.8 0 0 1 16 4.4 8.8 8.8 0 0 1 31 9.8C31 18.5 16 28 16 28z"/></svg>
@@ -260,6 +300,10 @@
         <a href="#board" class="tab" data-target="board">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a8 8 0 01-8 8H8l-5 3 1.6-4.4A8 8 0 1121 12z"/></svg>
             <span>悄悄话</span>
+        </a>
+        <a href="#period" class="tab" data-target="period">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>经期</span>
         </a>
     </nav>
 
@@ -359,6 +403,7 @@
     <script src="js/media.js"></script>
     <script src="js/core.js"></script>
     <script src="js/sync.js"></script>
+    <script src="js/period.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>
 </body>

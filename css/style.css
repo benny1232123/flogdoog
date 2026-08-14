@@ -1185,3 +1185,273 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .toast { background: #4A3B3F; }
     .anniv.is-today { background: var(--surface-solid); }
 }
+
+/* =========================================================
+   经期追踪模块样式
+   ========================================================= */
+
+/* 预测卡片 */
+.period-predict { margin-bottom: 20px; }
+.predict-card {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(180, 100, 120, .08);
+}
+.predict-phase {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-align: center;
+}
+.phase-period { color: #d6455a; }
+.phase-follicular { color: #e88a3c; }
+.phase-ovulation { color: #d4a017; }
+.phase-luteal { color: #7b8cde; }
+.phase-unknown { color: var(--ink-2); }
+
+.predict-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.predict-item {
+    text-align: center;
+    padding: 8px 4px;
+    background: rgba(232, 137, 154, .06);
+    border-radius: 10px;
+}
+.predict-label {
+    display: block;
+    font-size: .72rem;
+    color: var(--ink-3);
+    margin-bottom: 2px;
+}
+.predict-val {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink-1);
+}
+.predict-val small {
+    font-size: .7rem;
+    font-weight: 400;
+    color: var(--ink-3);
+}
+.predict-meta {
+    text-align: center;
+    font-size: .76rem;
+    color: var(--ink-3);
+}
+
+/* 快捷操作按钮 */
+.period-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    justify-content: center;
+}
+.period-actions .btn-primary { padding: 10px 28px; font-size: .95rem; }
+
+/* 日历 */
+.period-cal-wrap {
+    max-width: 420px;
+    margin: 0 auto 28px;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 16px;
+}
+.period-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.cal-month {
+    font-weight: 700;
+    font-size: 1rem;
+    min-width: 100px;
+    text-align: center;
+}
+.cal-nav {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    background: transparent;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-1);
+    transition: background .15s;
+}
+.cal-nav:hover { background: rgba(232, 137, 154, .1); }
+.cal-today { font-size: .78rem; padding: 4px 10px; }
+
+/* 日历网格 */
+.period-cal-grid { user-select: none; }
+.cal-dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 4px;
+}
+.cal-dow span {
+    text-align: center;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--ink-3);
+    padding: 4px 0;
+}
+.cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+.cal-empty { /* blank cell */ }
+.cal-day {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    font-size: .82rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-1);
+    transition: all .15s;
+    position: relative;
+}
+.cal-day:hover { background: rgba(232, 137, 154, .12); }
+.cal-day.is-today {
+    font-weight: 800;
+    box-shadow: inset 0 0 0 2px var(--accent, #e8899a);
+}
+.cal-day.is-period {
+    background: #f5d5da;
+    color: #b83a4e;
+    font-weight: 600;
+    border-radius: 50%;
+}
+.cal-day.is-predicted {
+    background: rgba(214, 69, 90, .1);
+    color: #d6455a;
+}
+.cal-day.is-future { opacity: .45; }
+
+/* 图例 */
+.cal-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: .72rem;
+    color: var(--ink-3);
+}
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+}
+.dot-period { background: #f5d5da; border: 1px solid #d6455a; }
+.dot-predicted { background: rgba(214, 69, 90, .15); border: 1px solid rgba(214, 69, 90, .4); }
+.dot-today { background: transparent; border: 2px solid var(--accent, #e8899a); }
+
+/* 历史记录列表 */
+.period-history { margin-top: 8px; }
+.period-hist-title {
+    font-size: .95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--ink-1);
+}
+.period-empty {
+    text-align: center;
+    color: var(--ink-3);
+    padding: 24px;
+    font-size: .88rem;
+}
+.rec-card {
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.06));
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+.rec-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.rec-date { font-weight: 600; font-size: .92rem; color: var(--ink-1); }
+.rec-flow {
+    font-size: .75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(214, 69, 90, .08);
+    color: #c43a4e;
+}
+.flow-normal { background: rgba(214, 69, 90, .08); color: #c43a4e; }
+.rec-note { font-size: .82rem; color: var(--ink-2); margin: 4px 0; }
+.rec-sym { font-size: .74rem; color: var(--ink-3); display: block; margin-top: 4px; }
+.rec-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+/* 日期详情弹窗 */
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .25s;
+}
+.sheet-overlay.is-open { opacity: 1; visibility: visible; }
+.date-detail-sheet {
+    background: var(--surface-solid, #fff);
+    border-radius: 16px;
+    padding: 24px;
+    min-width: 280px;
+    max-width: 360px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+}
+.date-detail-sheet h4 { margin: 0 0 12px; font-size: 1.05rem; }
+.date-detail-sheet p { font-size: .88rem; color: var(--ink-2); margin: 0 0 12px; }
+.dd-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+.dd-close-btn { display: block; margin: 0 auto; }
+
+/* 症状多选 */
+.sym-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.sym-check {
+    font-size: .78rem;
+    padding: 3px 10px;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s;
+}
+.sym-check input { display: none; }
+.sym-check:has(input:checked) {
+    background: rgba(214, 69, 90, .1);
+    border-color: rgba(214, 69, 90, .3);
+    color: #c43a4e;
+}
+
+/* 移动端适配 */
+@media (max-width: 520px) {
+    .predict-grid { grid-template-columns: repeat(2, 1fr); }
+    .period-cal-wrap { margin: 0 8px 24px; }
+    .rec-card { padding: 12px; }
+}
