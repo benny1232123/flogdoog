@@ -24,8 +24,6 @@
         { id: 'bookshelf', label: '📚 书架', icon: '📚' },
         { id: 'cushion', label: '🛋️ 抱枕', icon: '🛋️' },
         { id: 'photo', label: '🖼️ 照片墙', icon: '🖼️' },
-        { id: 'rug', label: '🟫 地毯', icon: '🟫' },
-        { id: 'window', label: '🪟 窗户', icon: '🪟' },
         { id: 'clock', label: '⏰ 挂钟', icon: '⏰' }
     ];
 

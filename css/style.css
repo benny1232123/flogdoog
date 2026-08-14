@@ -2149,14 +2149,38 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     box-shadow: inset 0 0 60px rgba(255,255,255,.5), 0 8px 32px rgba(180,120,100,.12);
 }
 .room-canvas.is-dark { color: #fff; }
+/* 永久装饰：窗户 + 地毯，让房间有结构感（不随家具开关变化） */
+.room-canvas::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: 8%; right: 8%;
+    width: 84px; height: 58px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #bfe6ff, #eaf6ff);
+    border: 4px solid rgba(255,255,255,.92);
+    box-shadow: 0 6px 14px rgba(0,0,0,.12), inset 0 0 0 3px rgba(255,255,255,.45);
+}
+.room-canvas.is-dark::before { background: linear-gradient(180deg, #33457a, #5a6eae); }
+.room-canvas::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    bottom: 5%; left: 50%;
+    transform: translateX(-50%);
+    width: 60%; height: 30px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(232,137,154,.18), rgba(232,137,154,0));
+}
 
 /* 地板 */
 .room-floor {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 60px;
-    background: linear-gradient(180deg, transparent, rgba(139,90,43,.08));
-    border-top: 2px solid rgba(139,90,43,.1);
+    height: 64px;
+    background: linear-gradient(180deg, rgba(180,130,90,.16), rgba(150,100,60,.30));
+    border-top: 3px solid rgba(139,90,43,.32);
+    box-shadow: inset 0 8px 16px rgba(255,255,255,.22);
 }
 
 /* 家具 */
@@ -2200,11 +2224,14 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     transition: left .5s ease, top .5s ease;
 }
 .avatar-body {
-    font-size: 2.8rem;
+    width: 58px; height: 58px;
     line-height: 1;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,.15));
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.18));
     transition: transform .3s;
 }
+.char-svg { width: 100%; height: 100%; display: block; }
+.room-avatar.dragging { cursor: grabbing; z-index: 20; }
+.room-avatar.dragging .avatar-body { transform: scale(1.08); }
 .avatar-name {
     font-size: .68rem;
     font-weight: 600;
@@ -2320,7 +2347,7 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
 
 @media (max-width: 520px) {
     .room-canvas { height: 320px; border-radius: 16px; }
-    .avatar-body { font-size: 2.2rem; }
+    .avatar-body { width: 48px; height: 48px; }
     .room-actions { gap: 6px; margin: 0 8px 14px; }
     .room-action-btn { padding: 8px 16px; font-size: .82rem; }
     .room-panel { margin: 0 8px; }

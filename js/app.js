@@ -1838,6 +1838,36 @@
     /* =========================================================
        模块 13 — 虚拟房间 + Avatar + 宠物 + 互动（新增）
        ========================================================= */
+    /* 阿蛙 / 阿狗 的可爱 SVG 形象（替代纯 emoji 漂浮） */
+    var FROG_SVG =
+        '<svg class="char-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
+        '<ellipse cx="32" cy="44" rx="21" ry="17" fill="#7CC576"/>' +
+        '<ellipse cx="32" cy="48" rx="12" ry="10" fill="#CDEBA0"/>' +
+        '<circle cx="22" cy="22" r="9" fill="#7CC576"/>' +
+        '<circle cx="42" cy="22" r="9" fill="#7CC576"/>' +
+        '<circle cx="22" cy="22" r="5.4" fill="#fff"/>' +
+        '<circle cx="42" cy="22" r="5.4" fill="#fff"/>' +
+        '<circle cx="23" cy="23" r="2.6" fill="#2c2c2c"/>' +
+        '<circle cx="41" cy="23" r="2.6" fill="#2c2c2c"/>' +
+        '<path d="M22 41 Q32 49 42 41" stroke="#3c6b35" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="15" cy="35" r="3" fill="#F7A8B8" opacity=".55"/>' +
+        '<circle cx="49" cy="35" r="3" fill="#F7A8B8" opacity=".55"/>' +
+        '</svg>';
+    var DOG_SVG =
+        '<svg class="char-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
+        '<ellipse cx="19" cy="18" rx="6" ry="12" fill="#C99A6A" transform="rotate(-18 19 18)"/>' +
+        '<ellipse cx="45" cy="18" rx="6" ry="12" fill="#C99A6A" transform="rotate(18 45 18)"/>' +
+        '<circle cx="32" cy="36" r="18" fill="#E2B98A"/>' +
+        '<ellipse cx="32" cy="44" rx="12" ry="9" fill="#F5E6CB"/>' +
+        '<circle cx="25" cy="34" r="2.6" fill="#3a2a1a"/>' +
+        '<circle cx="39" cy="34" r="2.6" fill="#3a2a1a"/>' +
+        '<ellipse cx="32" cy="41" rx="3.2" ry="2.4" fill="#3a2a1a"/>' +
+        '<path d="M32 43 v4 M32 47 q-4 1 -6 -1 M32 47 q4 1 6 -1" stroke="#3a2a1a" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="20" cy="41" r="3" fill="#F7A8B8" opacity=".5"/>' +
+        '<circle cx="44" cy="41" r="3" fill="#F7A8B8" opacity=".5"/>' +
+        '</svg>';
+    function avatarSVG(who) { return who === 'a' ? FROG_SVG : DOG_SVG; }
+
     function renderRoom() {
         if (!LP.Room) return;
         var R = LP.Room;
@@ -1919,6 +1949,10 @@
 
         // 姿态
         el.className = 'room-avatar room-avatar-' + who + ' pose-' + (avatarData.pose || 'idle');
+
+        // 注入可爱 SVG 形象
+        var body = el.querySelector('.avatar-body');
+        if (body) body.innerHTML = avatarSVG(who);
     }
 
     function renderRoomPanel(data, R) {
@@ -1999,18 +2033,43 @@
             hugBtn.addEventListener('click', function () { triggerInteraction('hug'); });
         }
 
-        // Avatar 拖动（简化版：点击移动到随机位置）
+        // Avatar 真实拖拽移动
         $$('.room-avatar').forEach(function (av) {
             if (av._dragBound) return;
             av._dragBound = true;
-            av.addEventListener('click', function () {
-                var who = this.id.replace('room-avatar-', '');
-                var newX = 20 + Math.round(Math.random() * 55); // 20-75%
-                var newY = 45 + Math.round(Math.random() * 30); // 45-75%
-                R.moveAvatar(who, newX, newY);
-                positionAvatar(who, R.load()[who === 'a' ? 'avatarA' : 'avatarB']);
-                toast((who === 'a' ? '阿蛙' : '阿狗') + ' 换了个位置 🎉');
+            var who = av.id.replace('room-avatar-', '');
+            var canvas = $('#room-canvas');
+            var dragging = false, offX = 0, offY = 0;
+
+            av.addEventListener('pointerdown', function (e) {
+                dragging = true;
+                av.classList.add('dragging');
+                try { av.setPointerCapture(e.pointerId); } catch (_) {}
+                var rect = canvas.getBoundingClientRect();
+                offX = e.clientX - rect.left - av.offsetLeft;
+                offY = e.clientY - rect.top - av.offsetTop;
+                e.preventDefault();
             });
+            av.addEventListener('pointermove', function (e) {
+                if (!dragging) return;
+                var rect = canvas.getBoundingClientRect();
+                var px = ((e.clientX - rect.left - offX) / rect.width) * 100;
+                var py = ((e.clientY - rect.top - offY) / rect.height) * 100;
+                px = Math.max(6, Math.min(88, px));
+                py = Math.max(28, Math.min(82, py));
+                R.moveAvatar(who, Math.round(px), Math.round(py));
+                av.style.left = px + '%';
+                av.style.top = py + '%';
+            });
+            function endDrag(e) {
+                if (!dragging) return;
+                dragging = false;
+                av.classList.remove('dragging');
+                try { av.releasePointerCapture(e.pointerId); } catch (_) {}
+                positionAvatar(who, R.load()[who === 'a' ? 'avatarA' : 'avatarB']);
+            }
+            av.addEventListener('pointerup', endDrag);
+            av.addEventListener('pointercancel', endDrag);
         });
     }
 
