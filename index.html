@@ -73,6 +73,7 @@
                 <a href="#schedule" class="nav-link" data-target="schedule">日程</a>
                 <a href="#rating" class="nav-link" data-target="rating">点评</a>
                 <a href="#resources" class="nav-link" data-target="resources">资料</a>
+                <a href="#footprint" class="nav-link" data-target="footprint">足迹</a>
             </nav>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -366,6 +367,32 @@
             <div class="res-list" id="res-list"></div>
         </section>
 
+        <!-- ---------- 足迹地图 ---------- -->
+        <section class="section" id="footprint">
+            <div class="sec-head reveal">
+                <h2 class="sec-title">🗺️ 我们的足迹</h2>
+                <p class="sec-sub">去过的地方 · 打卡记录</p>
+            </div>
+
+            <!-- 统计 -->
+            <div class="fp-stats reveal" id="fp-stats"></div>
+
+            <!-- 快捷打卡 -->
+            <div class="fp-add reveal">
+                <input type="text" id="fp-name-input" class="sched-input" placeholder="地名 / 店名 / 景点…" maxlength="50">
+                <input type="date" id="fp-date-input" class="sched-type-select">
+                <button class="btn-primary" id="fp-checkin-btn" type="button">📍 打卡</button>
+            </div>
+
+            <!-- 搜索 -->
+            <div class="res-toolbar reveal" style="margin-bottom:12px;">
+                <input type="text" id="fp-search" class="sched-input" placeholder="搜索足迹…">
+            </div>
+
+            <!-- 足迹列表 -->
+            <div class="fp-list" id="fp-list"></div>
+        </section>
+
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
                 <svg viewBox="0 0 32 29"><path d="M16 28S1 18.5 1 9.8A8.8 8.8 0 0 1 16 4.4 8.8 8.8 0 0 1 31 9.8C31 18.5 16 28 16 28z"/></svg>
@@ -416,6 +443,10 @@
         <a href="#resources" class="tab" data-target="resources">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
             <span>资料</span>
+        </a>
+        <a href="#footprint" class="tab" data-target="footprint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22s-8-4.5-8-11.8A8.8 8.8 0 0112 4.4a8.8 8.8 0 018 7.4c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="11" r="3"/></svg>
+            <span>足迹</span>
         </a>
     </nav>
 
@@ -520,6 +551,7 @@
     <script src="js/schedule.js"></script>
     <script src="js/rating.js"></script>
     <script src="js/resources.js"></script>
+    <script src="js/footprint.js"></script>
     <script src="js/app.js"></script>
     <script src="js/editor.js"></script>
 </body>

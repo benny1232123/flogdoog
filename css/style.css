@@ -2029,3 +2029,104 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .res-cats { margin: 0 8px 12px; }
     .res-card { padding: 12px; }
 }
+
+/* =========================================================
+   地图足迹打卡模块样式
+   ========================================================= */
+
+/* 统计卡片 */
+.fp-stats { max-width: 400px; margin: 0 auto 20px; }
+.fp-stat-cards {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+.fp-stat {
+    text-align: center;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 14px;
+    padding: 16px 24px;
+    flex: 1;
+}
+.fp-stat-num {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent, #e8899a);
+    line-height: 1;
+}
+.fp-stat-label {
+    display: block;
+    font-size: .76rem;
+    color: var(--ink-3);
+    margin-top: 4px;
+}
+
+/* 打卡输入 */
+.fp-add {
+    display: flex;
+    gap: 8px;
+    max-width: 480px;
+    margin: 0 auto 16px;
+    align-items: center;
+}
+.fp-add .btn-primary { white-space: nowrap; }
+
+/* 足迹卡片 */
+.fp-list { max-width: 540px; margin: 0 auto; }
+
+.fp-card {
+    display: flex;
+    gap: 12px;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.06));
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    animation: fpIn .3s ease both;
+    animation-delay: var(--fp-delay, 0ms);
+}
+@keyframes fpIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fp-rank {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent, #e8899a);
+    opacity: .3;
+    min-width: 28px;
+    text-align: center;
+    line-height: 1;
+}
+.fp-body { flex: 1; min-width: 0; }
+.fp-name {
+    font-size: .95rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--ink-1);
+}
+.fp-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .76rem;
+    color: var(--ink-3);
+}
+.fp-date { white-space: nowrap; }
+.fp-note {
+    font-size: .82rem;
+    color: var(--ink-2);
+    margin: 4px 0 0;
+    line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+    .fp-add { flex-wrap: wrap; margin: 0 8px 14px; }
+    .fp-stat-cards { gap: 8px; }
+    .fp-stat { padding: 12px 16px; }
+    .fp-stat-num { font-size: 1.6rem; }
+    .fp-card { padding: 12px; }
+}

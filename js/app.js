@@ -1734,6 +1734,108 @@
     }
 
     /* =========================================================
+       模块 12 — 地图足迹打卡（新增）
+       ========================================================= */
+    function renderFootprint() {
+        if (!LP.Footprint) return;
+        var FP = LP.Footprint;
+
+        // 统计
+        var statsEl = $('#fp-stats');
+        if (statsEl) {
+            var stats = FP.getStats();
+            statsEl.innerHTML = '<div class="fp-stat-cards">' +
+                '<div class="fp-stat"><span class="fp-stat-num">' + stats.total + '</span><span class="fp-stat-label">次打卡</span></div>' +
+                '<div class="fp-stat"><span class="fp-stat-num">' + stats.unique + '</span><span class="fp-stat-label">个地方</span></div>' +
+            '</div>';
+        }
+
+        // 默认日期为今天
+        var dateInput = $('#fp-date-input');
+        if (dateInput && !dateInput.value) dateInput.value = FP._fmtISO ? FP._fmtISO(new Date()) : new Date().toISOString().slice(0,10);
+
+        // 列表
+        renderFpList();
+
+        // 事件
+        bindFpEvents();
+    }
+
+    function renderFpList() {
+        var list = $('#fp-list');
+        if (!list) return;
+        var items = FP.getAll();
+
+        // 搜索过滤
+        var searchVal = ($('#fp-search') || {}).value || '';
+        if (searchVal.trim()) items = FP.search(searchVal.trim());
+
+        if (items.length === 0) {
+            list.innerHTML = '<p class="sched-empty">还没有足迹记录，去个好玩的地方打卡吧 📍</p>';
+            return;
+        }
+
+        list.innerHTML = items.map(function (p, idx) {
+            var whoTag = p.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
+                : p.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
+            var noteHtml = p.note ? '<p class="fp-note">' + esc(p.note) + '</p>' : '';
+            return '<div class="fp-card" data-id="' + p.id + '" style="--fp-delay:' + (idx * 30) + 'ms">' +
+                '<div class="fp-rank">#' + (idx + 1) + '</div>' +
+                '<div class="fp-body">' +
+                    '<h4 class="fp-name">📍 ' + esc(p.name) + '</h4>' +
+                    '<div class="fp-meta">' +
+                        '<span class="fp-date">📅 ' + (p.date || '') + '</span>' +
+                        whoTag +
+                        '<button class="link-btn sched-del fp-del" data-id="' + p.id + '">✕</button>' +
+                    '</div>' +
+                    noteHtml +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        $$('.fp-del', list).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                FP.delPlace(this.dataset.id);
+                toast('已删除');
+                renderFootprint();
+            });
+        });
+    }
+
+    function bindFpEvents() {
+        // 打卡按钮
+        var checkinBtn = $('#fp-checkin-btn');
+        if (checkinBtn && !checkinBtn._bound) {
+            checkinBtn._bound = true;
+            checkinBtn.addEventListener('click', function () {
+                var nameInput = $('#fp-name-input');
+                var dateInput = $('#fp-date-input');
+                var name = (nameInput.value || '').trim();
+                if (!name) { toast('写个地名吧'); nameInput.focus(); return; }
+                FP.addPlace({ name: name, date: dateInput.value || '' });
+                nameInput.value = '';
+                toast('打卡成功 ✓');
+                renderFootprint();
+            });
+            // 回车打卡
+            $('#fp-name-input').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); checkinBtn.click(); }
+            });
+        }
+
+        // 搜索
+        var searchInput = $('#fp-search');
+        if (searchInput && !searchInput._bound) {
+            searchInput._bound = true;
+            var fpTimer = null;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(fpTimer);
+                fpTimer = setTimeout(renderFpList, 250);
+            });
+        }
+    }
+
+    /* =========================================================
        统一渲染入口
        ========================================================= */
     function renderAll() {
@@ -1750,6 +1852,7 @@
         renderSchedule();
         renderRating();
         renderResources();
+        renderFootprint();
     }
 
     // 挂到 LP 上供 core.js 调用
