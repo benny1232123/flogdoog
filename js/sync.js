@@ -16,13 +16,21 @@
 
     const TIMEOUT_MS = 20000; // 单次请求最多等 20s，避免无限「同步中」
 
-    // 已部署的后端（worker 已上线）；未单独配置时使用，避免手填出错导致同步卡死
+    // 默认后端：站点同域（pages.dev/api/sync），手机网络可达、无需跨域。
+    // 旧版曾用 https://flogdoog-sync.bennyxie12321.workers.dev，但国内手机网络常连不上该域名。
     const DEFAULT_SYNC = {
-        endpoint: 'https://flogdoog-sync.bennyxie12321.workers.dev',
+        endpoint: '/api/sync',
         key: 'Xzy060112'
     };
 
     let cfg = store.get(SYNC_KEY, null) || DEFAULT_SYNC;
+
+    // 一次性迁移：旧版默认后端是 workers.dev（国内手机网络常连不上），自动换成站同域地址
+    const LEGACY_ENDPOINT = 'https://flogdoog-sync.bennyxie12321.workers.dev';
+    if (cfg.endpoint === LEGACY_ENDPOINT) {
+        cfg.endpoint = DEFAULT_SYNC.endpoint;
+        store.set(SYNC_KEY, cfg);
+    }
 
     function isConfigured() {
         return !!(cfg && typeof cfg.endpoint === 'string' && cfg.endpoint && typeof cfg.key === 'string' && cfg.key);

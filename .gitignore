@@ -17,6 +17,9 @@ our-planet.zip
 
 # 含密钥的 Worker 配置（明文 SYNC_KEY，禁止入库）
 worker/wrangler.toml
-# 注：根目录 wrangler.toml 含 Pages Functions 的 KV 绑定，且 SYNC_KEY 已随前端公开，故允许入库以让 git 构建带上同步后端
+# 站点同域同步后端（functions/ + 根 wrangler.toml）仅用于本地 wrangler pages deploy 直接上传，
+# 不入库：Pages git 构建不支持在仓库内这样配置 KV 绑定（会导致构建失败）
+functions/
+wrangler.toml
 # wrangler 缓存（含账户信息，不入库）
 worker/.wrangler/
