@@ -16,10 +16,12 @@
 
     const TIMEOUT_MS = 20000; // 单次请求最多等 20s，避免无限「同步中」
 
-    // 默认后端：站点同域（pages.dev/api/sync），手机网络可达、无需跨域。
-    // 旧版曾用 https://flogdoog-sync.bennyxie12321.workers.dev，但国内手机网络常连不上该域名。
+    // 默认后端：站点同域 Pages Function（main.flogdoog.pages.dev/api/sync）。
+    // 说明：flogdoog.pages.dev 生产域由 git 构建提供、目前未挂函数；主别名 main.* 直接部署带函数，
+    // 且函数已开 CORS(*)，跨域可用、手机网络可达（不再依赖被手机网络拦截的 workers.dev）。
+    // 注：若日后在 Cloudflare 后台把 KV 绑定配到 Pages 项目，可改回同源 '/api/sync'。
     const DEFAULT_SYNC = {
-        endpoint: '/api/sync',
+        endpoint: 'https://main.flogdoog.pages.dev/api/sync',
         key: 'Xzy060112'
     };
 
