@@ -55,6 +55,19 @@
 
     function status() { return { endpoint: (cfg && cfg.endpoint) || '', key: (cfg && cfg.key) || '' }; }
 
+    // 是否处于「出厂默认」绑定：端点与密钥都等同于 DEFAULT_SYNC（即「你的」云端）。
+    // 用于界面提示「出厂已绑定云端（你的数据）」。
+    function isFactoryDefault() {
+        return !!(cfg && cfg.endpoint === DEFAULT_SYNC.endpoint && cfg.key === DEFAULT_SYNC.key);
+    }
+
+    // 恢复出厂绑定：清掉本机自定义的云端配置，重新使用 DEFAULT_SYNC（你的地址+密钥）。
+    function resetToFactory() {
+        store.remove(SYNC_KEY);
+        cfg = { endpoint: DEFAULT_SYNC.endpoint, key: DEFAULT_SYNC.key };
+        return status();
+    }
+
     // 带超时的 fetch：超时 / 网络错误都会 reject，让调用方能给出明确提示
     async function fetchWithTimeout(url, opts) {
         const ctrl = new AbortController();
@@ -111,6 +124,6 @@
         }
     }
 
-    LP.Sync = { isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC };
+    LP.Sync = { isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC, isFactoryDefault, resetToFactory };
 
 })(window.LP);

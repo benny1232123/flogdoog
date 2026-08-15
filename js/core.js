@@ -526,6 +526,8 @@ window.LP = (function () {
                 }
                 if (LP.Sync && LP.Sync.isConfigured()) {
                     try {
+                        // 记录拉取前本机是否已有覆盖层，用于判断「出厂首次自动加载」
+                        const hadLocal = !!(store.get('lp.userData') && Object.keys(store.get('lp.userData')).length);
                         const remote = await LP.Sync.pull();
                         if (remote && remote.ok && remote.data) {
                             if (LP.Editor) {
@@ -533,6 +535,8 @@ window.LP = (function () {
                                 await LP.Editor.resolveMediaRefs(state.config);
                             }
                             console.info('[LP] 已从云端拉取最新内容');
+                            // 出厂首次打开（本机无覆盖层）自动以云端为基准时，明确提示用户
+                            if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
                             console.warn('[LP] 云同步拉取未成功：', remote.reason);
                         }

@@ -202,18 +202,30 @@
             <p class="ed-tip">提示：改了访问密码，下次锁定后就用新密码进入。</p>
             <div class="ed-divider"></div>
             <h4 class="ed-sub">云同步（多设备自动一致）</h4>
+            ${syncStatusHtml()}
             ${textRow('同步地址(Workers URL)', 'sync', null, 'endpoint', syncCfg().endpoint)}
             ${textRow('同步密钥', 'sync', null, 'key', syncCfg().key, { type: 'password' })}
             <div class="ed-row ed-row-inline">
                 <button class="btn-mini" data-action="sync-now" type="button">立即同步</button>
                 ${(LP.Sync && LP.Sync.DEFAULT_SYNC) ? '<button class="btn-mini btn-ghost" data-action="sync-reset" type="button">↺ 使用默认地址</button>' : ''}
+                ${(LP.Sync && LP.Sync.DEFAULT_SYNC) ? '<button class="btn-mini btn-ghost" data-action="sync-factory" type="button">↺ 恢复出厂(以云端为基准)</button>' : ''}
             </div>
-            <p class="ed-tip">在两台设备各填一次<strong>相同的地址和密钥</strong>，之后任一台改动会自动同步到另一台（站点解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。若之前同步卡住，点「使用默认地址」即可修复。</p>
+            <p class="ed-tip">出厂即已绑定云端（地址与密钥默认=你的），任意设备第一次打开会自动拉取<strong>你的云端内容</strong>作为基准。任一台改动会自动同步到另一台（解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。若某台设备内容乱了，点「恢复出厂(以云端为基准)」即重置为该设备以云端为准；之前同步卡住则点「使用默认地址」修复。</p>
         </div>`;
     }
 
     function syncCfg() {
         return (LP.Sync && LP.Sync.status) ? LP.Sync.status() : { endpoint: '', key: '' };
+    }
+
+    // 云同步绑定状态提示：出厂默认 vs 自定义
+    function syncStatusHtml() {
+        if (!LP.Sync) return '';
+        const factory = LP.Sync.isFactoryDefault ? LP.Sync.isFactoryDefault() : false;
+        if (factory) {
+            return '<p class="ed-status ed-status-ok">● 出厂已绑定云端（你的数据为基础）</p>';
+        }
+        return '<p class="ed-status">○ 自定义同步地址（非出厂默认）</p>';
     }
 
     function renderCouple() {
@@ -435,6 +447,46 @@
 
     /* ---------------- 按钮动作 ---------------- */
     async function onAction(act, el) {
+        if (act === 'sync-factory') {
+            if (!LP.Sync || !LP.Sync.DEFAULT_SYNC) { toast('无默认云端'); return; }
+            const btn = el; const orig = btn.textContent; btn.disabled = true; btn.textContent = '恢复中…';
+            try {
+                // ① 重新绑定到出厂默认（你的云端地址+密钥）
+                LP.Sync.resetToFactory();
+                // ② 清空本机覆盖层与房间，准备以云端为基准重建
+                try { store.remove(KEY); } catch (e) {}
+                try { store.remove('lp_room'); } catch (e) {}
+                // ③ 拉取云端作为基准（只拉不推，保持云端为权威）
+                toast('正在从云端加载你的内容…');
+                const remote = await LP.Sync.pull();
+                if (!remote.ok) {
+                    toast(({ forbidden: '密钥不对', timeout: '拉取超时', network: '网络错误', unconfigured: '未配置云端' })[remote.reason] || '拉取失败，检查网络');
+                    return;
+                }
+                // ④ 以云端覆盖层重建编辑器工作副本并应用到站点
+                working = getWorkingBase();
+                LP.Editor.applyOverlay(state.config);
+                try {
+                    await Promise.race([
+                        LP.Editor.resolveMediaRefs(state.config),
+                        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
+                    ]);
+                } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 恢复出厂媒体解析失败：', e); }
+                if (LP.renderAll) LP.renderAll();
+                if (LP.startCounter) LP.startCounter();
+                // ⑤ 输入框更新为出厂地址 + 提示
+                const d = LP.Sync.DEFAULT_SYNC;
+                const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = d.endpoint;
+                const ky = $('#f-sync-x-key'); if (ky) ky.value = d.key;
+                activeTab = 'site'; await renderTab();
+                toast('已恢复出厂：以你的云端数据为基准');
+            } catch (e) {
+                console.warn('[LP] 恢复出厂失败：', e); toast('恢复失败，请重试');
+            } finally {
+                try { btn.disabled = false; btn.textContent = orig; } catch (e) {}
+            }
+            return;
+        }
         if (act === 'sync-reset') {
             if (!LP.Sync || !LP.Sync.DEFAULT_SYNC) { toast('无默认地址'); return; }
             const d = LP.Sync.DEFAULT_SYNC;

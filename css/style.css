@@ -1072,6 +1072,18 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     background: color-mix(in srgb, var(--cream-2) 50%, transparent);
     padding: 9px 11px; border-radius: var(--r-sm);
 }
+.ed-status {
+    font-size: .73rem; line-height: 1.5; margin: 2px 0 8px;
+    padding: 7px 10px; border-radius: var(--r-sm);
+    color: var(--ink-3);
+    background: color-mix(in srgb, var(--line) 45%, transparent);
+    border: 1px solid var(--line);
+}
+.ed-status-ok {
+    color: #2e7d4f;
+    background: color-mix(in srgb, #e6f4ea 70%, transparent);
+    border-color: color-mix(in srgb, #2e7d4f 35%, transparent);
+}
 .ed-photo-wrap { display: flex; flex-direction: column; gap: 6px; }
 .ed-photo { width: 100%; max-height: 150px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); }
 .ed-photo-ph { font-size: .74rem; color: var(--ink-3); padding: 12px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r-sm); }
