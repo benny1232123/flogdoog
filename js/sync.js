@@ -27,9 +27,15 @@
 
     let cfg = store.get(SYNC_KEY, null) || DEFAULT_SYNC;
 
-    // 一次性迁移：旧版默认后端是 workers.dev（国内手机网络常连不上），自动换成站同域地址
-    const LEGACY_ENDPOINT = 'https://flogdoog-sync.bennyxie12321.workers.dev';
-    if (cfg.endpoint === LEGACY_ENDPOINT) {
+    // 自动迁移：任何旧/错误后端（workers.dev 域、旧的 /api/sync 相对路径、空值）都换成站同域可达地址
+    function isLegacyEndpoint(ep) {
+        if (!ep) return true;
+        if (ep === DEFAULT_SYNC.endpoint) return false;          // 已是正确的默认地址
+        if (ep.indexOf('workers.dev') >= 0) return true;          // 旧 Worker 域（手机网络常连不上）
+        if (ep === '/api/sync') return true;                      // 旧相对路径（生产域无函数时不工作）
+        return false;
+    }
+    if (isLegacyEndpoint(cfg.endpoint)) {
         cfg.endpoint = DEFAULT_SYNC.endpoint;
         store.set(SYNC_KEY, cfg);
     }
