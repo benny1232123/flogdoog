@@ -306,6 +306,7 @@ window.LP = (function () {
 
         document.body.classList.add('is-locked');
 
+        let verifyToken = 0;
         function paint() {
             dots.forEach((d, i) => d.classList.toggle('filled', i < buf.length));
         }
@@ -314,19 +315,23 @@ window.LP = (function () {
             if (buf === String(site.password)) {
                 hint.textContent = '欢迎回来 ♡';
                 hint.classList.remove('is-error');
-                setTimeout(() => unlock(false), 320);
+                setTimeout(() => unlock(false), 220);
             } else {
                 dotsBox.classList.add('is-shake');
                 hint.textContent = '不对哦，再想想';
                 hint.classList.add('is-error');
                 if (navigator.vibrate) navigator.vibrate(60);
+                // 立即清空，避免「输错后要等很久才能重输」的卡顿感
+                buf = '';
+                paint();
+                verifyToken = 0; // 取消任何待校验
                 setTimeout(() => {
                     dotsBox.classList.remove('is-shake');
-                    buf = '';
-                    paint();
-                    hint.textContent = '输入我们的六位数字';
-                    hint.classList.remove('is-error');
-                }, 620);
+                    if (hint.classList.contains('is-error')) {
+                        hint.textContent = '输入我们的六位数字';
+                        hint.classList.remove('is-error');
+                    }
+                }, 700);
             }
         }
 
@@ -339,7 +344,10 @@ window.LP = (function () {
             if (buf.length >= 6) return;
             buf += v;
             paint();
-            if (buf.length === 6) setTimeout(verify, 220);
+            if (buf.length === 6) {
+                const my = ++verifyToken;
+                setTimeout(() => { if (my === verifyToken) verify(); }, 180);
+            }
         }
 
         $$('.key', screen).forEach((key) => {
@@ -470,6 +478,8 @@ window.LP = (function () {
     async function boot() {
         applyTheme();
         buildPetals();
+        // 先锁住背景，避免加载期间页面可滚动/可交互
+        document.body.classList.add('is-locked');
 
         // 移动端禁止双指缩放（沿用原项目）
         document.addEventListener('touchstart', (e) => {
@@ -501,33 +511,40 @@ window.LP = (function () {
         const note = $('#footer-note');
         if (note) note.textContent = data.site.footerNote || '';
 
-        // 应用用户本地覆盖（自己编辑过的内容优先于 config.json 默认值）
+        // 应用用户本地覆盖（同步部分，快）：自己编辑过的内容优先于 config.json 默认值
         if (LP.Editor) {
             try { LP.Editor.applyOverlay(state.config); } catch (e) { console.warn('[LP] 应用本地覆盖失败：', e); }
-            try { await LP.Editor.resolveMediaRefs(state.config); } catch (e) { console.warn('[LP] 解析媒体引用失败：', e); }
         }
 
-        // 云同步（Cloudflare KV）：已配置则拉取远端覆盖层，覆盖本机后重新应用
-        if (LP.Sync && LP.Sync.isConfigured()) {
-            try {
-                const remote = await LP.Sync.pull();
-                if (remote && remote.ok && remote.data) {
-                    LP.Editor.applyOverlay(state.config);
-                    await LP.Editor.resolveMediaRefs(state.config);
-                    console.info('[LP] 已从云端拉取最新内容');
-                } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
-                    console.warn('[LP] 云同步拉取未成功：', remote.reason);
-                }
-            } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
-        }
-
+        // 立即初始化锁屏（绑定键盘、显示界面），不要等下面的异步工作，
+        // 否则在「已配置云同步」或「媒体解析较慢」时，锁屏会先显示却点不了键盘 → 表现为卡死。
         initLock(() => {
-            LP.renderAll();
-            startCounter();
-            initNav();
-            initSettings();
-            $('#app').classList.add('is-ready');
-            observeReveal($$('.reveal'));
+            // 解锁后再做耗时工作：媒体解析 + 云同步拉取，做完再渲染
+            (async () => {
+                if (LP.Editor) {
+                    try { await LP.Editor.resolveMediaRefs(state.config); } catch (e) { console.warn('[LP] 解析媒体引用失败：', e); }
+                }
+                if (LP.Sync && LP.Sync.isConfigured()) {
+                    try {
+                        const remote = await LP.Sync.pull();
+                        if (remote && remote.ok && remote.data) {
+                            if (LP.Editor) {
+                                LP.Editor.applyOverlay(state.config);
+                                await LP.Editor.resolveMediaRefs(state.config);
+                            }
+                            console.info('[LP] 已从云端拉取最新内容');
+                        } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
+                            console.warn('[LP] 云同步拉取未成功：', remote.reason);
+                        }
+                    } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
+                }
+                LP.renderAll();
+                startCounter();
+                initNav();
+                initSettings();
+                $('#app').classList.add('is-ready');
+                observeReveal($$('.reveal'));
+            })();
         });
     }
 
