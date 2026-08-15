@@ -303,21 +303,31 @@
             <!-- 即将到来 -->
             <div class="sched-upcoming reveal" id="sched-upcoming" style="display:none"></div>
 
-            <!-- 标签页：待办 | 购物 | 日历 -->
-            <div class="sched-tabs reveal">
-                <button class="sched-tab is-active" data-stab="todo" type="button">☐ 待办</button>
-                <button class="sched-tab" data-stab="shopping" type="button">🛒 购物</button>
-                <button class="sched-tab" data-stab="calendar" type="button">📆 日历</button>
+            <!-- 📆 日历主视图（始终显示） -->
+            <div class="sched-cal-wrap reveal" id="sched-cal-wrap">
+                <div class="sched-cal-nav">
+                    <button class="cal-nav" id="sc-prev" type="button" aria-label="上个月">‹</button>
+                    <span class="cal-month" id="sc-month"></span>
+                    <button class="cal-nav" id="sc-next" type="button" aria-label="下个月">›</button>
+                    <button class="btn-ghost cal-today" id="sc-today" type="button">今天</button>
+                </div>
+                <div class="cal-dow" id="sc-dow"></div>
+                <div class="cal-grid" id="sched-calendar"></div>
+                <!-- 当日事件详情 -->
+                <div class="sc-day-events" id="sc-day-events"><p class="sched-empty">点击日期查看 / 添加事件</p></div>
             </div>
 
-            <!-- 待办列表 -->
-            <div class="sched-panel" id="sched-panel-todo"></div>
-
-            <!-- 购物清单 -->
-            <div class="sched-panel" id="sched-panel-shopping" style="display:none"></div>
-
-            <!-- 日历视图 -->
-            <div class="sched-panel" id="sched-panel-calendar" style="display:none"></div>
+            <!-- 待办 & 购物（折叠面板） -->
+            <div class="sched-lists reveal">
+                <details class="sched-details" open>
+                    <summary class="sched-summary">☐ 待办事项 <span class="sched-count" id="sched-todo-count">0</span></summary>
+                    <div class="sched-panel" id="sched-panel-todo"></div>
+                </details>
+                <details class="sched-details">
+                    <summary class="sched-summary">🛒 购物清单 <span class="sched-count" id="sched-shop-count">0</span></summary>
+                    <div class="sched-panel" id="sched-panel-shopping"></div>
+                </details>
+            </div>
         </section>
 
         <!-- ---------- 评分 / 点评 ---------- -->

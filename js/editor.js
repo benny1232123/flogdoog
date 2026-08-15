@@ -119,7 +119,7 @@
                 anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
                 room: (window.LP && LP.Room) ? LP.Room.exportData() : null
             };
-            LP.Sync.push(obj).then((ok) => { if (ok) toast('已同步到云端'); });
+            LP.Sync.push(obj).then((r) => { if (r && r.ok) toast('已同步到云端'); else if (r && r.reason === 'forbidden') toast('同步失败：密钥不对'); });
         }
     }
 
@@ -180,8 +180,11 @@
             <h4 class="ed-sub">云同步（多设备自动一致）</h4>
             ${textRow('同步地址(Workers URL)', 'sync', null, 'endpoint', syncCfg().endpoint)}
             ${textRow('同步密钥', 'sync', null, 'key', syncCfg().key, { type: 'password' })}
-            <button class="btn-mini" data-action="sync-now" type="button">立即同步</button>
-            <p class="ed-tip">在两台设备各填一次<strong>相同的地址和密钥</strong>，之后任一台改动会自动同步到另一台（站点解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。</p>
+            <div class="ed-row ed-row-inline">
+                <button class="btn-mini" data-action="sync-now" type="button">立即同步</button>
+                ${(LP.Sync && LP.Sync.DEFAULT_SYNC) ? '<button class="btn-mini btn-ghost" data-action="sync-reset" type="button">↺ 使用默认地址</button>' : ''}
+            </div>
+            <p class="ed-tip">在两台设备各填一次<strong>相同的地址和密钥</strong>，之后任一台改动会自动同步到另一台（站点解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。若之前同步卡住，点「使用默认地址」即可修复。</p>
         </div>`;
     }
 
@@ -408,6 +411,14 @@
 
     /* ---------------- 按钮动作 ---------------- */
     async function onAction(act, el) {
+        if (act === 'sync-reset') {
+            if (!LP.Sync || !LP.Sync.DEFAULT_SYNC) { toast('无默认地址'); return; }
+            const d = LP.Sync.DEFAULT_SYNC;
+            LP.Sync.configure(d.endpoint, d.key);
+            toast('已重置为默认同步地址');
+            renderTab(); // 刷新表单显示
+            return;
+        }
         if (act === 'sync-now') {
             if (!LP.Sync || !LP.Sync.isConfigured()) { toast('请先填写同步地址和密钥'); return; }
             toast('正在同步…');
@@ -418,9 +429,15 @@
                 room: (window.LP && LP.Room) ? LP.Room.exportData() : null
             };
             const ok = await LP.Sync.push(obj);
-            if (!ok) { toast('上传失败，检查地址/密钥或网络'); return; }
+            if (!ok.ok) {
+                const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
+                toast(msg); return;
+            }
             const remote = await LP.Sync.pull();
-            if (!remote) { toast('拉取失败，检查地址/密钥或网络'); return; }
+            if (!remote.ok) {
+                const msg = { forbidden: '拉取失败：密钥不对', timeout: '拉取超时：检查网络或地址', network: '拉取失败：网络错误', unconfigured: '请先填写同步地址和密钥' }[remote.reason] || '拉取失败，检查地址/密钥或网络';
+                toast(msg); return;
+            }
             try {
                 LP.Editor.applyOverlay(state.config);
                 await LP.Editor.resolveMediaRefs(state.config);

@@ -1219,14 +1219,20 @@
         if (!LP.Schedule) return;
         var S = LP.Schedule;
 
-        // 待办面板
-        renderSchedPanel('todo', S.getPending('todo').concat(S.load().events.filter(function (e) { return e.type === 'todo' && e.done; })), S);
+        // 📆 日历主视图（始终渲染）
+        renderSchedCalendar(S);
 
-        // 购物面板
-        renderSchedPanel('shopping', S.getPending('shopping').concat(S.load().events.filter(function (e) { return e.type === 'shopping' && e.done; })), S);
+        // 待办 & 购物面板（折叠区内）
+        var todoItems = S.getPending('todo').concat(S.load().events.filter(function (e) { return e.type === 'todo' && e.done; }));
+        var shopItems = S.getPending('shopping').concat(S.load().events.filter(function (e) { return e.type === 'shopping' && e.done; }));
+        renderSchedPanel('todo', todoItems, S);
+        renderSchedPanel('shopping', shopItems, S);
 
-        // 日历面板
-        renderSchedCalendar();
+        // 更新折叠标题计数
+        var todoCnt = $('#sched-todo-count');
+        if (todoCnt) todoCnt.textContent = todoItems.length;
+        var shopCnt = $('#sched-shop-count');
+        if (shopCnt) shopCnt.textContent = shopItems.length;
 
         // 即将到来（提醒）
         renderSchedUpcoming(S);
@@ -1278,10 +1284,17 @@
         });
     }
 
-    function renderSchedCalendar() {
-        var panel = $('#sched-panel-calendar');
-        if (!panel) return;
-        var S = LP.Schedule;
+    // 日历选中日期（ISO 字符串，如 '2026-08-14'）
+    var schedSelectedDate = null;
+
+    function renderSchedCalendar(S) {
+        S = S || LP.Schedule;
+        if (!S) return;
+
+        var calGrid = $('#sched-calendar');
+        var monthEl = $('#sc-month');
+        if (!calGrid) return;
+
         var now = new Date();
         if (schedCalYear == null) { schedCalYear = now.getFullYear(); schedCalMonth = now.getMonth(); }
         var eventMap = S.getEventsByDateMap();
@@ -1297,7 +1310,7 @@
             });
         });
 
-        // 也合并经期数据
+        // 合并经期数据（背景色）
         var periodData = LP.Period ? LP.Period.load() : null;
         if (periodData) {
             periodData.records.forEach(function (r) {
@@ -1306,63 +1319,90 @@
             });
         }
 
-        var dowNames = ['日', '一', '二', '三', '四', '五', '六'];
+        // 月份标题
+        if (monthEl) monthEl.textContent = schedCalYear + '年' + (schedCalMonth + 1) + '月';
+
+        // 星期头
+        var dowEl = $('#sc-dow');
+        if (dowEl) {
+            dowEl.innerHTML = ['日','一','二','三','四','五','六'].map(function (d) { return '<span>' + d + '</span>'; }).join('');
+        }
+
+        // 生成日历格子
         var firstDay = new Date(schedCalYear, schedCalMonth, 1);
         var lastDay = new Date(schedCalYear, schedCalMonth + 1, 0);
         var startDow = firstDay.getDay();
         var daysInMonth = lastDay.getDate();
         var today = new Date(); today.setHours(0,0,0,0);
-        var todayISO = schedCalYear + '-' + String(schedCalMonth+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-
-        var html = '<div class="sched-cal-nav">';
-        html += '<button class="cal-nav" id="sc-prev" type="button">‹</button>';
-        html += '<span class="cal-month">' + schedCalYear + '年' + (schedCalMonth + 1) + '月</span>';
-        html += '<button class="cal-nav" id="sc-next" type="button">›</button>';
-        html += '<button class="btn-ghost cal-today" id="sc-today" type="button">今天</button>';
-        html += '</div>';
-
-        html += '<div class="cal-dow">' + dowNames.map(function (d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
+        var todayISO = S._fmtISO(today);
 
         var weeks = [], week = [];
-        for (var i = 0; i < startDow; i++) week.push(null);
+        for (var i = 0; i < startDow; i++) week.push('<span class="cal-day cal-empty"></span>');
         for (var d = 1; d <= daysInMonth; d++) {
             var iso = schedCalYear + '-' + String(schedCalMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
             var evts = eventMap[iso] || [];
             var hasPeriod = evts.some(function (e) { return e._period; });
-            var hasEvent = evts.some(function (e) { return !e._period; });
-            var isToday = iso === (S._fmtISO(today));
+            var nonPeriodEvts = evts.filter(function (e) { return !e._period; });
+            var evtCount = nonPeriodEvts.length;
+            var isToday = iso === todayISO;
+            var isSelected = iso === schedSelectedDate;
+
             var cls = 'cal-day';
             if (isToday) cls += ' is-today';
+            if (isSelected) cls += ' is-selected';
             if (hasPeriod) cls += ' is-period';
-            if (hasEvent) cls += ' has-event';
+            if (evtCount > 0) cls += ' has-event';
 
-            var dotHtml = '';
-            if (hasEvent) dotHtml += '<i class="dot-dot"></i>';
-            week.push('<button class="' + cls + '" data-iso="' + iso + '" type="button">' + d + dotHtml + '</button>');
-            if (week.length === 7) { weeks.push(week); week = []; }
+            // 事件数量标记（最多3个圆点 + 超出数字）
+            var dotsHtml = '';
+            if (evtCount > 0) {
+                var dotN = Math.min(evtCount, 3);
+                for (var di = 0; di < dotN; di++) dotsHtml += '<i class="dot-dot"></i>';
+                if (evtCount > 3) dotsHtml += '<span class="dot-more">' + evtCount + '</span>';
+            }
+
+            week.push('<button class="' + cls + '" data-iso="' + iso + '" type="button">' +
+                '<span class="cal-num">' + d + '</span>' +
+                '<span class="cal-dots">' + dotsHtml + '</span>' +
+            '</button>');
+            if (week.length === 7) { weeks.push('<div class="cal-week">' + week.join('') + '</div>'); week = []; }
         }
-        if (week.length > 0) { while (week.length < 7) week.push(null); weeks.push(week); }
+        if (week.length > 0) { while (week.length < 7) week.push('<span class="cal-day cal-empty"></span>'); weeks.push('<div class="cal-week">' + week.join('') + '</div>'); }
 
-        weeks.forEach(function (w) {
-            html += '<div class="cal-week">' + w.join('') + '</div>';
-        });
+        calGrid.innerHTML = weeks.join('');
 
-        // 当日事件详情
-        html += '<div class="sc-day-events" id="sc-day-events"><p class="sched-empty">点击日期查看事件</p></div>';
+        // 导航按钮绑定
+        var prevBtn = $('#sc-prev'), nextBtn = $('#sc-next'), todayBtn = $('#sc-today');
+        if (prevBtn) prevBtn.onclick = function () { schedCalMonth--; if (schedCalMonth<0){schedCalMonth=11;schedCalYear--;} renderSchedule(); };
+        if (nextBtn) nextBtn.onclick = function () { schedCalMonth++; if (schedCalMonth>11){schedCalMonth=0;schedCalYear++;} renderSchedule(); };
+        if (todayBtn) todayBtn.onclick = function () { var n=new Date(); schedCalYear=n.getFullYear(); schedCalMonth=n.getMonth(); schedSelectedDate=S._fmtISO(new Date()); renderSchedule(); };
 
-        panel.innerHTML = html;
-
-        // 日历事件
-        $$('#sc-prev')[0] && ($('#sc-prev').onclick = function () { schedCalMonth--; if (schedCalMonth<0){schedCalMonth=11;schedCalYear--;} renderSchedule(); });
-        $$('#sc-next')[0] && ($('#sc-next').onclick = function () { schedCalMonth++; if (schedCalMonth>11){schedCalMonth=0;schedCalYear++;} renderSchedule(); });
-        $$('#sc-today')[0] && ($('#sc-today').onclick = function () { var n=new Date(); schedCalYear=n.getFullYear(); schedCalMonth=n.getMonth(); renderSchedule(); });
-
-        // 点击日期
-        $$('.cal-day:not(.cal-empty)', panel).forEach(function (btn) {
+        // 点击日期 → 选中 + 显示事件 + 填入日期输入框
+        $$('.cal-day:not(.cal-empty)', calGrid).forEach(function (btn) {
             btn.addEventListener('click', function () {
-                showDayEvents(this.dataset.iso, eventMap);
+                var iso = this.dataset.iso;
+                schedSelectedDate = iso;
+
+                // 高亮选中日期
+                $$('.cal-day.is-selected', calGrid).forEach(function (b) { b.classList.remove('is-selected'); });
+                this.classList.add('is-selected');
+
+                // 填入日期输入框
+                var dateInput = $('#sched-date-input');
+                if (dateInput) dateInput.value = iso;
+
+                // 显示当日事件
+                showDayEvents(iso, eventMap);
             });
         });
+
+        // 渲染当日事件面板
+        if (schedSelectedDate) {
+            showDayEvents(schedSelectedDate, eventMap);
+        } else {
+            var dayEvts = $('#sc-day-events');
+            if (dayEvts) dayEvts.innerHTML = '<p class="sched-empty">点击日期查看 / 添加事件</p>';
+        }
     }
 
     function renderSchedUpcoming(S) {
@@ -1388,12 +1428,11 @@
                 var d = S._parseISO(this.dataset.iso);
                 if (!d) return;
                 schedCalYear = d.getFullYear(); schedCalMonth = d.getMonth();
-                $$('.sched-tab').forEach(function (t) { t.classList.remove('is-active'); });
-                var calTab = document.querySelector('.sched-tab[data-stab="calendar"]');
-                if (calTab) calTab.classList.add('is-active');
-                $$('.sched-panel').forEach(function (p) { p.style.display = 'none'; });
-                var p = $('#sched-panel-calendar'); if (p) p.style.display = '';
-                renderSchedCalendar();
+                schedSelectedDate = this.dataset.iso;
+                renderSchedule();
+                // 滚动到日历
+                var calWrap = $('#sched-cal-wrap');
+                if (calWrap) calWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
     }
@@ -1467,20 +1506,6 @@
                 if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
             });
         }
-
-        // 标签页切换
-        $$('.sched-tab').forEach(function (tab) {
-            if (tab._bound) return;
-            tab._bound = true;
-            tab.addEventListener('click', function () {
-                $$('.sched-tab').forEach(function (t) { t.classList.remove('is-active'); });
-                this.classList.add('is-active');
-                var target = this.dataset.stab;
-                $$('.sched-panel').forEach(function (p) { p.style.display = 'none'; });
-                var panel = $('#sched-panel-' + target);
-                if (panel) panel.style.display = '';
-            });
-        });
     }
 
     /* =========================================================

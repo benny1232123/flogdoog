@@ -511,10 +511,12 @@ window.LP = (function () {
         if (LP.Sync && LP.Sync.isConfigured()) {
             try {
                 const remote = await LP.Sync.pull();
-                if (remote) {
+                if (remote && remote.ok && remote.data) {
                     LP.Editor.applyOverlay(state.config);
                     await LP.Editor.resolveMediaRefs(state.config);
                     console.info('[LP] 已从云端拉取最新内容');
+                } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
+                    console.warn('[LP] 云同步拉取未成功：', remote.reason);
                 }
             } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
         }

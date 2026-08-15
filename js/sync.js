@@ -14,7 +14,15 @@
     const SYNC_KEY = 'lp.sync';        // { endpoint, key } 本机保存
     const OVERLAY_KEY = 'lp.userData'; // 与编辑器共用的覆盖层键
 
-    let cfg = store.get(SYNC_KEY, null);
+    const TIMEOUT_MS = 20000; // 单次请求最多等 20s，避免无限「同步中」
+
+    // 已部署的后端（worker 已上线）；未单独配置时使用，避免手填出错导致同步卡死
+    const DEFAULT_SYNC = {
+        endpoint: 'https://flogdoog-sync.bennyxie12321.workers.dev',
+        key: 'Xzy060112'
+    };
+
+    let cfg = store.get(SYNC_KEY, null) || DEFAULT_SYNC;
 
     function isConfigured() {
         return !!(cfg && typeof cfg.endpoint === 'string' && cfg.endpoint && typeof cfg.key === 'string' && cfg.key);
@@ -29,49 +37,64 @@
         return isConfigured();
     }
 
-    function status() { return cfg ? { endpoint: cfg.endpoint || '', key: cfg.key || '' } : { endpoint: '', key: '' }; }
+    function status() { return { endpoint: (cfg && cfg.endpoint) || '', key: (cfg && cfg.key) || '' }; }
+
+    // 带超时的 fetch：超时 / 网络错误都会 reject，让调用方能给出明确提示
+    async function fetchWithTimeout(url, opts) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+        try {
+            return await fetch(url, Object.assign({ signal: ctrl.signal }, opts));
+        } finally {
+            clearTimeout(timer);
+        }
+    }
 
     async function pull() {
-        if (!isConfigured()) return null;
+        if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try {
-            const res = await fetch(cfg.endpoint, {
+            const res = await fetchWithTimeout(cfg.endpoint, {
                 method: 'GET',
                 headers: { 'x-sync-key': cfg.key }
             });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
+            if (res.status === 403) return { ok: false, reason: 'forbidden' };
+            if (!res.ok) return { ok: false, reason: 'http' + res.status };
             const data = await res.json();
-            // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回 null
+            // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回空
             if (data && typeof data === 'object' && Object.keys(data).length) {
                 store.set(OVERLAY_KEY, data); // 覆盖本机覆盖层，供 Editor.applyOverlay 读取
                 // 虚拟房间的装扮也跟着覆盖层一起同步（独立键 lp_room）
                 if (data.room && window.LP && LP.Room) {
                     try { LP.Room.importData(data.room); } catch (e) { console.warn('[LP] 房间数据同步失败：', e); }
                 }
-                return data;
+                return { ok: true, data: data };
             }
-            return null;
+            return { ok: true, data: null };
         } catch (e) {
+            if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
             console.warn('[LP] 云端拉取失败：', e);
-            return null;
+            return { ok: false, reason: 'network' };
         }
     }
 
     async function push(obj) {
-        if (!isConfigured()) return false;
+        if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try {
-            const res = await fetch(cfg.endpoint, {
+            const res = await fetchWithTimeout(cfg.endpoint, {
                 method: 'PUT',
                 headers: { 'content-type': 'application/json', 'x-sync-key': cfg.key },
                 body: JSON.stringify(obj || {})
             });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return true;
+            if (res.status === 403) return { ok: false, reason: 'forbidden' };
+            if (!res.ok) return { ok: false, reason: 'http' + res.status };
+            return { ok: true };
         } catch (e) {
+            if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
             console.warn('[LP] 云端推送失败：', e);
-            return false;
+            return { ok: false, reason: 'network' };
         }
     }
 
-    LP.Sync = { isConfigured, configure, status, pull, push };
+    LP.Sync = { isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC };
 
 })(window.LP);

@@ -1018,6 +1018,8 @@
 .ed-sec { display: flex; flex-direction: column; gap: 12px; }
 .ed-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ed-row { display: flex; flex-direction: column; gap: 5px; }
+.ed-row-inline { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.ed-row-inline .btn-mini { flex: 0 0 auto; }
 .ed-label { font-size: .74rem; color: var(--ink-3); letter-spacing: .04em; }
 .ed-input {
     width: 100%; padding: 9px 12px; font-size: .86rem; font-family: inherit;
