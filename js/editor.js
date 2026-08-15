@@ -415,8 +415,13 @@
             if (!LP.Sync || !LP.Sync.DEFAULT_SYNC) { toast('无默认地址'); return; }
             const d = LP.Sync.DEFAULT_SYNC;
             LP.Sync.configure(d.endpoint, d.key);
-            toast('已重置为默认同步地址');
-            renderTab(); // 刷新表单显示
+            // 直接把输入框改成新地址（无论当前停在哪页都有即时反馈）
+            const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = d.endpoint;
+            const ky = $('#f-sync-x-key'); if (ky) ky.value = d.key;
+            // 切到站点页并重绘，确保用户当场看到更新后的地址
+            activeTab = 'site';
+            await renderTab();
+            toast('已重置为默认同步地址：' + d.endpoint);
             return;
         }
         if (act === 'sync-now') {
