@@ -421,33 +421,59 @@
         }
         if (act === 'sync-now') {
             if (!LP.Sync || !LP.Sync.isConfigured()) { toast('请先填写同步地址和密钥'); return; }
-            toast('正在同步…');
-            // 先把本机当前内容上传到云端（首次设同步时也能把完整内容传上去），再拉取合并
-            const obj = {
-                site: working.site, couple: working.couple,
-                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                room: (window.LP && LP.Room) ? LP.Room.exportData() : null
-            };
-            const ok = await LP.Sync.push(obj);
-            if (!ok.ok) {
-                const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
-                toast(msg); return;
-            }
-            const remote = await LP.Sync.pull();
-            if (!remote.ok) {
-                const msg = { forbidden: '拉取失败：密钥不对', timeout: '拉取超时：检查网络或地址', network: '拉取失败：网络错误', unconfigured: '请先填写同步地址和密钥' }[remote.reason] || '拉取失败，检查地址/密钥或网络';
-                toast(msg); return;
-            }
+            // 按钮态：禁用 + 改文案，避免重复点；finally 里必定复位
+            const btn = el;
+            const origText = btn.textContent;
+            btn.disabled = true; btn.textContent = '同步中…';
+            const resetBtn = () => { try { btn.disabled = false; btn.textContent = origText; } catch (e) {} };
+
+            // 整个流程硬性上限 45s，防止任何环节（含 resolveMediaRefs）卡死导致永远「正在同步」
+            const HARD_DEADLINE_MS = 45000;
+            let settled = false;
+            const guard = setTimeout(() => {
+                if (!settled) { settled = true; resetBtn(); toast('同步超时：请检查网络，或点「↺ 使用默认地址」后重试'); }
+            }, HARD_DEADLINE_MS);
+
             try {
-                LP.Editor.applyOverlay(state.config);
-                await LP.Editor.resolveMediaRefs(state.config);
+                toast('正在同步…');
+                // 先把本机当前内容上传到云端（首次设同步时也能把完整内容传上去），再拉取合并
+                const obj = {
+                    site: working.site, couple: working.couple,
+                    anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
+                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null
+                };
+                const ok = await LP.Sync.push(obj);
+                if (!ok.ok) {
+                    const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
+                    toast(msg); return;
+                }
+                const remote = await LP.Sync.pull();
+                if (!remote.ok) {
+                    const msg = { forbidden: '拉取失败：密钥不对', timeout: '拉取超时：检查网络或地址', network: '拉取失败：网络错误', unconfigured: '请先填写同步地址和密钥' }[remote.reason] || '拉取失败，检查地址/密钥或网络';
+                    toast(msg); return;
+                }
+                try {
+                    LP.Editor.applyOverlay(state.config);
+                    // resolveMediaRefs 单独限 8s，避免 IndexedDB 卡住拖垮整个同步
+                    await Promise.race([
+                        LP.Editor.resolveMediaRefs(state.config),
+                        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
+                    ]);
+                } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 同步后媒体解析失败：', e); }
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
                 // 把刚刚拉到的远端数据刷新到编辑器工作副本，避免下次保存覆盖
                 loadWorkingFromConfig();
                 toast('云端同步成功');
                 renderTab();
-            } catch (e) { toast('同步应用失败'); }
+            } catch (e) {
+                console.warn('[LP] 同步异常：', e);
+                toast('同步异常，请重试');
+            } finally {
+                settled = true;
+                clearTimeout(guard);
+                resetBtn();
+            }
             return;
         }
         if (act === 'anniv-add') {
