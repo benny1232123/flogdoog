@@ -21,6 +21,30 @@
     const refId = (v) => v.slice(6);
     const todayStr = () => new Date().toISOString().slice(0, 10);
 
+    // 数组按稳定键去重合并（本地 + 云端并集，互不覆盖）
+    function unionArr(localArr, remoteArr, keyOf) {
+        const loc = (localArr || []).slice();
+        const rem = (remoteArr || []).slice();
+        const seen = new Set();
+        const out = [];
+        loc.forEach(function (it) { const k = keyOf(it); if (!seen.has(k)) { seen.add(k); out.push(clone(it)); } });
+        rem.forEach(function (it) { const k = keyOf(it); if (!seen.has(k)) { seen.add(k); out.push(clone(it)); } });
+        return out;
+    }
+
+    // 合并本机 working 与云端 remote：单值字段云端优先、数组取并集
+    function mergeOverlay(local, remote) {
+        local = local || {};
+        remote = remote || {};
+        return {
+            site: Object.assign(clone(local.site || {}), clone(remote.site || {})),
+            couple: Object.assign(clone(local.couple || {}), clone(remote.couple || {})),
+            anniversaries: unionArr(local.anniversaries, remote.anniversaries, function (x) { return (x.title || '') + '|' + (x.date || ''); }),
+            timeline: unionArr(local.timeline, remote.timeline, function (x) { return (x.date || '') + '|' + (x.title || ''); }),
+            gallery: unionArr(local.gallery, remote.gallery, function (x) { return x.src || x.id || JSON.stringify(x); })
+        };
+    }
+
     function pickFile(accept, multiple, cb) {
         const inp = document.createElement('input');
         inp.type = 'file';
@@ -441,22 +465,17 @@
 
             try {
                 toast('正在同步…');
-                // 先把本机当前内容上传到云端（首次设同步时也能把完整内容传上去），再拉取合并
-                const obj = {
-                    site: working.site, couple: working.couple,
-                    anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null
-                };
-                const ok = await LP.Sync.push(obj);
-                if (!ok.ok) {
-                    const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
-                    toast(msg); return;
-                }
+                // ① 先拉取云端（关键：不能用本机可能为空/旧的内容把云端覆盖掉）
                 const remote = await LP.Sync.pull();
                 if (!remote.ok) {
                     const msg = { forbidden: '拉取失败：密钥不对', timeout: '拉取超时：检查网络或地址', network: '拉取失败：网络错误', unconfigured: '请先填写同步地址和密钥' }[remote.reason] || '拉取失败，检查地址/密钥或网络';
                     toast(msg); return;
                 }
+                // ② 本机 working 与云端 remote 合并（双方内容都保留，数组按稳定键去重并集）
+                const merged = mergeOverlay(working, remote.data);
+                store.set(KEY, merged);   // 覆盖层 = 合并结果
+                working = clone(merged);
+                // ③ 应用到站点并刷新
                 try {
                     LP.Editor.applyOverlay(state.config);
                     // resolveMediaRefs 单独限 8s，避免 IndexedDB 卡住拖垮整个同步
@@ -467,8 +486,17 @@
                 } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 同步后媒体解析失败：', e); }
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
-                // 把刚刚拉到的远端数据刷新到编辑器工作副本，避免下次保存覆盖
-                loadWorkingFromConfig();
+                // ④ 把合并后的全集推回云端（确保云端是双方并集，不再被本机旧内容覆盖）
+                const obj = {
+                    site: working.site, couple: working.couple,
+                    anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
+                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null
+                };
+                const ok = await LP.Sync.push(obj);
+                if (!ok.ok) {
+                    const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
+                    toast(msg); return;
+                }
                 toast('云端同步成功');
                 renderTab();
             } catch (e) {
