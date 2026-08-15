@@ -93,6 +93,50 @@
         return out;
     }
 
+    // 通用数组按 id 并集（无 id 用 JSON 兜底）
+    function unionById(local, remote, idOf) {
+        local = Array.isArray(local) ? local.slice() : [];
+        remote = Array.isArray(remote) ? remote.slice() : [];
+        const seen = new Set(); const out = [];
+        const f = idOf || function (x) { return JSON.stringify(x); };
+        local.forEach(function (it) { const k = f(it); if (!seen.has(k)) { seen.add(k); out.push(it); } });
+        remote.forEach(function (it) { const k = f(it); if (!seen.has(k)) { seen.add(k); out.push(it); } });
+        return out;
+    }
+
+    // 通用深合并：数组字段按 id 并集，对象字段递归合并，其余标量云端优先；用于各独立模块的云端合并
+    function deepMergeModules(local, remote) {
+        const idKey = function (x) { return x && x.id != null ? String(x.id) : JSON.stringify(x); };
+        if (Array.isArray(remote)) {
+            return unionById(local || [], remote, idKey);
+        }
+        if (remote && typeof remote === 'object') {
+            const base = (local && typeof local === 'object') ? local : {};
+            const out = Object.assign({}, base, remote);
+            Object.keys(remote).forEach(function (k) {
+                const rv = remote[k], bv = base[k];
+                if (Array.isArray(rv) && Array.isArray(bv)) {
+                    out[k] = unionById(bv, rv, idKey);
+                } else if (rv && typeof rv === 'object' && !Array.isArray(rv) && bv && typeof bv === 'object' && !Array.isArray(bv)) {
+                    out[k] = deepMergeModules(bv, rv); // 递归合并嵌套对象（如 rating.scores）
+                }
+            });
+            return out;
+        }
+        return remote;
+    }
+
+    // 需要并入云端同步的独立模块（各自已有 exportData/importData）
+    // arr=true 表示数组，按 id 并集；arr=false 表示对象，云端最后写入优先
+    const MODULE_SYNC = [
+        { ns: 'Mood', key: 'mood', arr: true },
+        { ns: 'Schedule', key: 'schedule', arr: true },
+        { ns: 'Rating', key: 'rating', arr: true },
+        { ns: 'Resources', key: 'resources', arr: true },
+        { ns: 'Footprint', key: 'footprint', arr: true },
+        { ns: 'Period', key: 'period', arr: false }
+    ];
+
     async function pull() {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try {
@@ -119,6 +163,17 @@
                         if (window.LP && LP.renderMessages) LP.renderMessages();
                     } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }
                 }
+                // 其余独立模块：拉取后深合并（数组按 id 并集、标量云端优先），双方都保留
+                MODULE_SYNC.forEach(function (m) {
+                    const rd = data[m.key];
+                    if (rd == null) return;
+                    const api = window.LP && window.LP[m.ns];
+                    if (!api || !api.importData) return;
+                    try {
+                        const local = api.exportData ? api.exportData() : null;
+                        api.importData(deepMergeModules(local, rd));
+                    } catch (e) { console.warn('[LP] 模块同步失败: ' + m.key, e); }
+                });
                 return { ok: true, data: data };
             }
             return { ok: true, data: null };
@@ -147,6 +202,47 @@
         }
     }
 
-    LP.Sync = { isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC, isFactoryDefault, resetToFactory };
+    // 构造推送包：仅编辑器覆盖层 + 悄悄话 + 房间（编辑器保存时用，不影响其他模块）
+    function buildOverlayPayload() {
+        const p = Object.assign({}, store.get(OVERLAY_KEY, {}) || {});
+        p.messages = store.get('lp.messages', null);
+        const room = window.LP && window.LP.Room;
+        p.room = (room && room.exportData) ? room.exportData() : null;
+        return p;
+    }
+
+    // 构造全量推送包：覆盖层 + 悄悄话 + 房间 + 所有独立模块（立即同步/开机上传时用）
+    function buildFullPayload() {
+        const p = buildOverlayPayload();
+        ['Mood', 'Schedule', 'Rating', 'Resources', 'Footprint', 'Period'].forEach(function (ns) {
+            const api = window.LP && window.LP[ns];
+            if (api && api.exportData) p[ns.toLowerCase()] = api.exportData();
+        });
+        return p;
+    }
+
+    // 先拉取合并再上传全量，确保不会用本机旧内容覆盖对方改动（收敛所有模块）
+    async function pushAll() {
+        if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
+        try { await pull(); } catch (e) { console.warn('[LP] pushAll 预拉取失败（继续上传）', e); }
+        return await push(buildFullPayload());
+    }
+
+    // 防抖自动同步：各模块保存时调用，避免频繁请求
+    let _pushTimer = null;
+    function schedulePushAll() {
+        if (!isConfigured()) return;
+        if (_pushTimer) clearTimeout(_pushTimer);
+        _pushTimer = setTimeout(function () {
+            _pushTimer = null;
+            pushAll().catch(function (e) { console.warn('[LP] 自动同步失败：', e); });
+        }, 1200);
+    }
+
+    LP.Sync = {
+        isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC,
+        isFactoryDefault, resetToFactory,
+        buildOverlayPayload, buildFullPayload, pushAll, schedulePushAll
+    };
 
 })(window.LP);

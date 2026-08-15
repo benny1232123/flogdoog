@@ -520,9 +520,24 @@ window.LP = (function () {
         // 否则在「已配置云同步」或「媒体解析较慢」时，锁屏会先显示却点不了键盘 → 表现为卡死。
         initLock(() => {
             // 解锁后再做耗时工作：媒体解析 + 云同步拉取，做完再渲染
+            // 立即用本机内容渲染，避免解锁后长时间白屏/空内容（慢加载修复）
+            LP.renderAll();
+            startCounter();
+            initNav();
+            initSettings();
+            const rb = $('#refresh-btn'); if (rb) rb.addEventListener('click', refreshSite);
+            $('#app').classList.add('is-ready');
+            observeReveal($$('.reveal'));
+            // 后台再做媒体解析 + 云端同步（均带超时），完成后再局部刷新
             (async () => {
                 if (LP.Editor) {
-                    try { await LP.Editor.resolveMediaRefs(state.config); } catch (e) { console.warn('[LP] 解析媒体引用失败：', e); }
+                    try {
+                        await Promise.race([
+                            LP.Editor.resolveMediaRefs(state.config),
+                            new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
+                        ]);
+                        LP.renderAll();
+                    } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 解析媒体引用失败：', e); }
                 }
                 if (LP.Sync && LP.Sync.isConfigured()) {
                     try {
@@ -532,36 +547,63 @@ window.LP = (function () {
                         if (remote && remote.ok && remote.data) {
                             if (LP.Editor) {
                                 LP.Editor.applyOverlay(state.config);
-                                await LP.Editor.resolveMediaRefs(state.config);
+                                try {
+                                    await Promise.race([
+                                        LP.Editor.resolveMediaRefs(state.config),
+                                        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
+                                    ]);
+                                } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 媒体解析失败：', e); }
                             }
-                            console.info('[LP] 已从云端拉取最新内容');
-                            // 出厂首次打开（本机无覆盖层）自动以云端为基准时，明确提示用户
+                            LP.renderAll();
+                            LP.renderMessages();
                             if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
-                            // 拉取成功后，把本机可能独有的悄悄话也上传云端，确保「没同步的都同步」
+                            // 拉取成功后，把本机可能独有的全部内容（含所有模块）上传云端，确保「没同步的都同步」
                             try {
-                                const up = Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
-                                LP.Sync.push(up).catch(function (e) { console.warn('[LP] 悄悄话上传失败：', e); });
-                            } catch (e) { console.warn('[LP] 悄悄话上传失败：', e); }
+                                const up = LP.Sync.buildFullPayload ? LP.Sync.buildFullPayload() : Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
+                                LP.Sync.push(up).catch(function (e) { console.warn('[LP] 内容上传失败：', e); });
+                            } catch (e) { console.warn('[LP] 内容上传失败：', e); }
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
                             console.warn('[LP] 云同步拉取未成功：', remote.reason);
                         }
                     } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
                 }
-                LP.renderAll();
-                startCounter();
-                initNav();
-                initSettings();
-                $('#app').classList.add('is-ready');
-                observeReveal($$('.reveal'));
             })();
         });
     }
 
     document.addEventListener('DOMContentLoaded', boot);
 
+    // 手动刷新：重新从云端拉取并整体重渲染（不重新锁屏），供「刷新按钮」调用
+    async function refreshSite() {
+        if (!LP.Sync || !LP.Sync.isConfigured()) {
+            LP.renderAll(); if (LP.renderMessages) LP.renderMessages(); startCounter();
+            toast('已刷新');
+            return;
+        }
+        toast('正在刷新…');
+        try {
+            const remote = await LP.Sync.pull();
+            if (LP.Editor) { try { LP.Editor.applyOverlay(state.config); } catch (e) {} }
+            if (remote && remote.ok && remote.data) {
+                try {
+                    await Promise.race([
+                        LP.Editor.resolveMediaRefs(state.config),
+                        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('t')); }, 8000); })
+                    ]);
+                } catch (e) { /* 媒体解析超时忽略 */ }
+            }
+            LP.renderAll(); if (LP.renderMessages) LP.renderMessages(); startCounter();
+            toast(remote && remote.ok ? '已刷新（已同步云端）' : '已刷新');
+        } catch (e) {
+            console.warn('[LP] 刷新失败：', e);
+            LP.renderAll(); if (LP.renderMessages) LP.renderMessages();
+            toast('刷新失败，已用本机内容');
+        }
+    }
+
     /* ---------------- 对外接口 ---------------- */
     return {
         LS, $, $$, store, esc, pad, parseDate, dayDiff, fmtDate, fmtRelTime,
-        state, toast, observeReveal, lazyImages, startCounter
+        state, toast, observeReveal, lazyImages, startCounter, refreshSite
     };
 })();

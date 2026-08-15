@@ -42,6 +42,7 @@
 
     function save(data) {
         try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (e) {}
+        if (window.LP && LP.Sync && LP.Sync.schedulePushAll) LP.Sync.schedulePushAll();
     }
 
     /**

@@ -37,6 +37,7 @@
 
     function save(data) {
         try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
+        if (window.LP && LP.Sync && LP.Sync.schedulePushAll) LP.Sync.schedulePushAll();
     }
 
     // ---- 记录管理 ----

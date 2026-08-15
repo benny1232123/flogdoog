@@ -540,11 +540,12 @@
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
                 // ④ 把合并后的全集推回云端（确保云端是双方并集，不再被本机旧内容覆盖）
-                const obj = {
+                // 上传全量（含所有独立模块），pull 已先合并，确保不互相覆盖
+                const obj = LP.Sync.buildFullPayload ? LP.Sync.buildFullPayload() : {
                     site: working.site, couple: working.couple,
                     anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
                     room: (window.LP && LP.Room) ? LP.Room.exportData() : null,
-                    messages: store.get('lp.messages', null)  // 悄悄话留言板一并同步
+                    messages: store.get('lp.messages', null)
                 };
                 const ok = await LP.Sync.push(obj);
                 if (!ok.ok) {
