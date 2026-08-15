@@ -79,6 +79,20 @@
         }
     }
 
+    // 悄悄话并集：按 id（无 id 用 time|author|text）去重，双方内容都保留
+    function unionMessages(local, remote) {
+        local = Array.isArray(local) ? local.slice() : [];
+        remote = Array.isArray(remote) ? remote.slice() : [];
+        const seen = new Set(); const out = [];
+        const key = function (m) {
+            if (m && m.id) return 'id:' + m.id;
+            return 'k:' + (m ? (m.time || '') + '|' + (m.author || '') + '|' + (m.text || '') : '');
+        };
+        local.forEach(function (m) { const k = key(m); if (!seen.has(k)) { seen.add(k); out.push(m); } });
+        remote.forEach(function (m) { const k = key(m); if (!seen.has(k)) { seen.add(k); out.push(m); } });
+        return out;
+    }
+
     async function pull() {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try {
@@ -95,6 +109,15 @@
                 // 虚拟房间的装扮也跟着覆盖层一起同步（独立键 lp_room）
                 if (data.room && window.LP && LP.Room) {
                     try { LP.Room.importData(data.room); } catch (e) { console.warn('[LP] 房间数据同步失败：', e); }
+                }
+                // 悄悄话留言板：与本地按稳定键并集，双方内容都保留（不覆盖、不丢）
+                if (data.messages && Array.isArray(data.messages)) {
+                    try {
+                        const local = store.get('lp.messages', null);
+                        const merged = unionMessages(local, data.messages);
+                        store.set('lp.messages', merged);
+                        if (window.LP && LP.renderMessages) LP.renderMessages();
+                    } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }
                 }
                 return { ok: true, data: data };
             }

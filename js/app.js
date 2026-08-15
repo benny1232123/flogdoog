@@ -589,6 +589,22 @@
 
     function setMessages(list) { store.set(LS.messages, list); }
 
+    // 悄悄话即时上云：先拉（合并云端到本机）再推（上传并集），避免覆盖对方内容
+    let _msgSync = null;
+    function syncMessages() {
+        if (!LP.Sync || !LP.Sync.isConfigured()) return;
+        if (_msgSync) return _msgSync;
+        _msgSync = (async function () {
+            try {
+                await LP.Sync.pull();
+                const up = Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
+                await LP.Sync.push(up);
+            } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }
+            finally { _msgSync = null; }
+        })();
+        return _msgSync;
+    }
+
     function renderComposer() {
         const partners = state.config.couple.partners || [];
         curSpeaker = store.get(LS.speaker, 0);
@@ -654,6 +670,7 @@
             sync();
             renderMessages();
             toast('已经放进我们的小盒子了');
+            syncMessages(); // 立即同步到云端
         }
     }
 
@@ -728,6 +745,7 @@
                 setMessages(kept);
                 renderMessages();
                 toast('已删除');
+                syncMessages(); // 同步删除到云端
             });
         });
     }

@@ -141,7 +141,8 @@
             const obj = {
                 site: working.site, couple: working.couple,
                 anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                room: (window.LP && LP.Room) ? LP.Room.exportData() : null
+                room: (window.LP && LP.Room) ? LP.Room.exportData() : null,
+                messages: store.get('lp.messages', null)  // 悄悄话留言板一并同步
             };
             LP.Sync.push(obj).then((r) => { if (r && r.ok) toast('已同步到云端'); else if (r && r.reason === 'forbidden') toast('同步失败：密钥不对'); });
         }
@@ -542,7 +543,8 @@
                 const obj = {
                     site: working.site, couple: working.couple,
                     anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null
+                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null,
+                    messages: store.get('lp.messages', null)  // 悄悄话留言板一并同步
                 };
                 const ok = await LP.Sync.push(obj);
                 if (!ok.ok) {

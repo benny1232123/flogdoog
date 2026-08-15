@@ -537,6 +537,11 @@ window.LP = (function () {
                             console.info('[LP] 已从云端拉取最新内容');
                             // 出厂首次打开（本机无覆盖层）自动以云端为基准时，明确提示用户
                             if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
+                            // 拉取成功后，把本机可能独有的悄悄话也上传云端，确保「没同步的都同步」
+                            try {
+                                const up = Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
+                                LP.Sync.push(up).catch(function (e) { console.warn('[LP] 悄悄话上传失败：', e); });
+                            } catch (e) { console.warn('[LP] 悄悄话上传失败：', e); }
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
                             console.warn('[LP] 云同步拉取未成功：', remote.reason);
                         }
