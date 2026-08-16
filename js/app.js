@@ -618,7 +618,15 @@
         return raw.filter(function (m) { return !del[m.id]; });
     }
 
-    function setMessages(list) { store.set(LS.messages, list); }
+    function setMessages(list) {
+        // ⚠️ 保护：不存入空数组覆盖非空数据（避免 pushAll 把 [] 推上云清空消息）
+        const existing = store.get(LS.messages, null);
+        if ((!list || !list.length) && existing && Array.isArray(existing) && existing.length) {
+            console.warn('[LP] setMessages 拒绝写入空数组（保留已有 ' + existing.length + ' 条消息）');
+            return;
+        }
+        store.set(LS.messages, list);
+    }
 
     // 悄悄话即时上云：用全量推送（含所有模块），避免只推 overlay+messages 导致云端模块数据被清空
     let _msgSync = null;
@@ -777,9 +785,8 @@
                 const id = btn.dataset.del;
                 if (!id) return;
                 addDeletedId(id);  // 标记为已删除（跨设备同步）
-                // 从本机消息列表里移除该 id（其余保留），渲染时 getMessages 也会过滤已删除 id
-                const list = store.get(LS.messages, []) || [];
-                setMessages(list.filter(function (m) { return (m.id || msgStableId(m)) !== id; }));
+                // ⚠️ 不再从列表中移除消息实体！只靠 delIds 渲染时过滤。
+                //    原因：若此处 filter 后存入空数组，pushAll 会把 [] 推上云覆盖原有消息。
                 renderMessages();
                 toast('已删除');
                 syncMessages(); // 同步删除到云端

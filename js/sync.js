@@ -114,6 +114,7 @@
     }
 
     // 通用深合并：数组字段按 id 并集，对象字段递归合并，其余标量云端优先；用于各独立模块的云端合并
+    // ⚠️ null 保护：云端的 null/undefined 不会覆盖本机的有效非 null 值（避免某端清除心情后把另一端的心情也清掉）
     function deepMergeModules(local, remote) {
         const idKey = function (x) { return x && x.id != null ? String(x.id) : JSON.stringify(x); };
         if (Array.isArray(remote)) {
@@ -122,6 +123,12 @@
         if (remote && typeof remote === 'object') {
             const base = (local && typeof local === 'object') ? local : {};
             const out = Object.assign({}, base, remote);
+            // null 保护：如果 remote 某字段为 null/undefined 但 base 有有效值，保留 base 的值
+            Object.keys(base).forEach(function (k) {
+                if (out[k] == null && base[k] != null && typeof base[k] === 'object') {
+                    out[k] = JSON.parse(JSON.stringify(base[k])); // 深拷贝避免引用污染
+                }
+            });
             Object.keys(remote).forEach(function (k) {
                 const rv = remote[k], bv = base[k];
                 if (Array.isArray(rv) && Array.isArray(bv)) {
@@ -198,14 +205,18 @@
                     try { LP.Room.importData(data.room); } catch (e) { console.warn('[LP] 房间数据同步失败：', e); }
                 }
                 // 悄悄话留言板：与本地按稳定键并集，双方内容都保留（不覆盖、不丢）
+                // ⚠️ 此处只做并集存储，不过滤 msgDelIds；删除标记仅用于渲染时过滤。
+                //    原因：若此处过滤后存入空数组，pushAll 会把 [] 推上云覆盖原有消息！
                 if (data.messages && Array.isArray(data.messages)) {
                     try {
                         const local = store.get('lp.messages', null);
-                        let merged = unionMessages(local, data.messages);
-                        // 剔除已被任一端标记为删除的消息（避免云端合并不回来）
-                        const del = store.get('lp.msgDelIds', {}) || {};
-                        if (Object.keys(del).length) merged = merged.filter(function (m) { return !(m.id && del[m.id]); });
-                        store.set('lp.messages', merged);
+                        const merged = unionMessages(local, data.messages);
+                        // 保护：只有当云端和本地都无消息时才存空（避免空数组覆盖非空云端数据）
+                        if (data.messages.length > 0 || (Array.isArray(local) && local.length > 0)) {
+                            store.set('lp.messages', merged.length > 0 ? merged : data.messages);
+                        } else {
+                            store.set('lp.messages', merged);
+                        }
                         if (window.LP && LP.renderMessages) LP.renderMessages();
                     } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }
                 }
