@@ -584,22 +584,38 @@
     let curMood = '';
     let curSpeaker = 0;
 
+    // 已删除的消息 ID 集合（跨设备同步，确保一边删了另一边也消失）
+    const MSG_DEL_KEY = 'lp.msgDelIds';
+    function getDeletedIds() { return store.get(MSG_DEL_KEY, {}); }
+    function addDeletedId(id) {
+        const d = getDeletedIds();
+        d[id] = true;
+        store.set(MSG_DEL_KEY, d);
+    }
+    function isDeleted(id) { return !!(getDeletedIds()[id]); }
+
     function getMessages() {
         const saved = store.get(LS.messages, null);
-        if (saved) return saved;
-        // 首次访问：以配置中的预置留言作为种子
-        return (state.config.messages || []).slice();
+        const raw = saved ? saved : (state.config.messages || []).slice();
+        // 过滤掉已删除的消息（跨设备同步的删除会标记在此）
+        return raw.filter(function (m) {
+            const mid = m.id || null;
+            return mid == null || !isDeleted(mid);
+        });
     }
 
     function setMessages(list) { store.set(LS.messages, list); }
 
-    // 悄悄话即时上云：先拉（合并云端到本机）再推（上传并集），避免覆盖对方内容
+    // 悄悄话即时上云：用全量推送（含所有模块），避免只推 overlay+messages 导致云端模块数据被清空
     let _msgSync = null;
     function syncMessages() {
         if (!LP.Sync || !LP.Sync.isConfigured()) return;
         if (_msgSync) return _msgSync;
         _msgSync = (async function () {
             try {
+                // 用全量推送：先拉取合并，再把本机全部内容（含所有模块）上云
+                if (LP.Sync.pushAll) { await LP.Sync.pushAll(); return; }
+                // 降级：旧版无 pushAll 时走原逻辑
                 await LP.Sync.pull();
                 const up = Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
                 await LP.Sync.push(up);
@@ -745,6 +761,7 @@
         $$('.del-btn', box).forEach((btn) => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.del;
+                addDeletedId(id);  // 标记为已删除（跨设备同步）
                 const kept = getMessages().filter((m, i) => (m.id || ('seed' + i)) !== id);
                 setMessages(kept);
                 renderMessages();

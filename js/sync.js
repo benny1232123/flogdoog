@@ -206,6 +206,15 @@
                         if (window.LP && LP.renderMessages) LP.renderMessages();
                     } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }
                 }
+                // 已删除消息 ID 集合：两边并集（任一设备删了就全局删）
+                if (data.msgDelIds && typeof data.msgDelIds === 'object') {
+                    try {
+                        const localDel = store.get('lp.msgDelIds', {}) || {};
+                        const mergedDel = Object.assign({}, localDel, data.msgDelIds);
+                        store.set('lp.msgDelIds', mergedDel);
+                        if (window.LP && LP.renderMessages) LP.renderMessages();
+                    } catch (e) { console.warn('[LP] 已删除ID同步失败：', e); }
+                }
                 // 其余独立模块：拉取后深合并（数组按 id 并集、标量云端优先），双方都保留
                 MODULE_SYNC.forEach(function (m) {
                     const rd = data[m.key];
@@ -360,6 +369,11 @@
             const api = window.LP && window.LP[ns];
             if (api && api.exportData) p[ns.toLowerCase()] = api.exportData();
         });
+        // 已删除消息 ID 集合（跨设备同步删除）
+        if (window.LP && LP.store) {
+            const delIds = LP.store.get('lp.msgDelIds', null);
+            if (delIds) p.msgDelIds = delIds;
+        }
         return p;
     }
 
@@ -403,6 +417,7 @@
             return JSON.stringify({
                 o: data.site,
                 m: data.messages,
+                mdel: data.msgDelIds,
                 r: data.room,
                 sc: data.schedule,
                 md: data.mood,
