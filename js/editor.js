@@ -145,6 +145,8 @@
                 messages: store.get('lp.messages', null)  // 悄悄话留言板一并同步
             };
             LP.Sync.push(obj).then((r) => { if (r && r.ok) toast('已同步到云端'); else if (r && r.reason === 'forbidden') toast('同步失败：密钥不对'); });
+            // 媒体（图片/视频）改动走全量上传（含 base64 媒体），防抖合并请求
+            if (LP.Sync.schedulePushAll) LP.Sync.schedulePushAll();
         }
     }
 
@@ -539,14 +541,9 @@
                 } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 同步后媒体解析失败：', e); }
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
-                // ④ 把合并后的全集推回云端（确保云端是双方并集，不再被本机旧内容覆盖）
-                // 上传全量（含所有独立模块），pull 已先合并，确保不互相覆盖
-                const obj = LP.Sync.buildFullPayload ? LP.Sync.buildFullPayload() : {
-                    site: working.site, couple: working.couple,
-                    anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                    room: (window.LP && LP.Room) ? LP.Room.exportData() : null,
-                    messages: store.get('lp.messages', null)
-                };
+                // ④ 把合并后的全集推回云端（含所有独立模块 + 全部图片/视频媒体）
+                // pull 已先合并，确保不互相覆盖；buildFullPayload 为异步（需 await）
+                const obj = await LP.Sync.buildFullPayload();
                 const ok = await LP.Sync.push(obj);
                 if (!ok.ok) {
                     const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';

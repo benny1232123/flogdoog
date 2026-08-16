@@ -557,9 +557,9 @@ window.LP = (function () {
                             LP.renderAll();
                             LP.renderMessages();
                             if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
-                            // 拉取成功后，把本机可能独有的全部内容（含所有模块）上传云端，确保「没同步的都同步」
+                            // 拉取成功后，把本机可能独有的全部内容（含所有模块 + 全部图片/视频）上传云端，确保「没同步的都同步」
                             try {
-                                const up = LP.Sync.buildFullPayload ? LP.Sync.buildFullPayload() : Object.assign({}, store.get('lp.userData', {}) || {}, { messages: store.get('lp.messages', null) });
+                                const up = await LP.Sync.buildFullPayload();
                                 LP.Sync.push(up).catch(function (e) { console.warn('[LP] 内容上传失败：', e); });
                             } catch (e) { console.warn('[LP] 内容上传失败：', e); }
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {

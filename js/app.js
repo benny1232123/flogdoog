@@ -542,6 +542,10 @@
             } else if (res.warnings.length) {
                 setTimeout(() => toast(res.warnings[0]), 2200);
             }
+            // 新上传的图片/视频 → 防抖上传到云端（base64 随同步包携带），实现跨设备一致
+            if (LP.Sync && LP.Sync.schedulePushAll && res.saved.length) {
+                LP.Sync.schedulePushAll();
+            }
         }
     }
 
