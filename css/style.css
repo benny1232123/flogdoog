@@ -1200,6 +1200,26 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .anniv.is-today { background: var(--surface-solid); }
 }
 
+/* 顶栏同步状态指示点 */
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    font-size: 11px; line-height: 1;
+    margin-left: 2px;
+    color: #bbb;
+    cursor: default;
+    user-select: none;
+    transition: color .25s ease;
+}
+.sync-status[data-state="init"] { color: #bbb; }
+.sync-status[data-state="syncing"] { color: #f0a429; animation: sync-pulse 1s ease-in-out infinite; }
+.sync-status[data-state="ok"] { color: #3fb56b; }
+.sync-status[data-state="error"] { color: #e25c5c; }
+@keyframes sync-pulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sync-status[data-state="syncing"] { animation: none; } }
+
 /* =========================================================
    经期追踪模块样式
    ========================================================= */

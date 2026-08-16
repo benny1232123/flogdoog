@@ -544,24 +544,25 @@ window.LP = (function () {
                         // 记录拉取前本机是否已有覆盖层，用于判断「出厂首次自动加载」
                         const hadLocal = !!(store.get('lp.userData') && Object.keys(store.get('lp.userData')).length);
                         const remote = await LP.Sync.pull();
-                        if (remote && remote.ok && remote.data) {
-                            if (LP.Editor) {
-                                LP.Editor.applyOverlay(state.config);
-                                try {
-                                    await Promise.race([
-                                        LP.Editor.resolveMediaRefs(state.config),
-                                        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
-                                    ]);
-                                } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 媒体解析失败：', e); }
+                        if (remote && remote.ok) {
+                            if (remote.data) {
+                                if (LP.Editor) {
+                                    LP.Editor.applyOverlay(state.config);
+                                    try {
+                                        await Promise.race([
+                                            LP.Editor.resolveMediaRefs(state.config),
+                                            new Promise(function (_, rej) { setTimeout(function () { rej(new Error('media-timeout')); }, 8000); })
+                                        ]);
+                                    } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 媒体解析失败：', e); }
+                                }
+                                LP.renderAll();
+                                LP.renderMessages();
+                                if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
                             }
-                            LP.renderAll();
-                            LP.renderMessages();
-                            if (!hadLocal && LP.toast) LP.toast('✓ 已从云端加载你的内容（出厂默认已绑定云端）');
-                            // 拉取成功后，把本机可能独有的全部内容（含所有模块 + 全部图片/视频）上传云端，确保「没同步的都同步」
-                            try {
-                                const up = await LP.Sync.buildFullPayload();
-                                LP.Sync.push(up).catch(function (e) { console.warn('[LP] 内容上传失败：', e); });
-                            } catch (e) { console.warn('[LP] 内容上传失败：', e); }
+                            // 关键修复：无论云端是否已有数据，都把本机（含预存的旧心情/日程等）全部合并上云，
+                            // 否则云端为空时本机预存内容永远不会被上传，表现为「这边改了那边看不到」。
+                            // pushAll 内部先拉后推，不会用本机旧数据覆盖对方改动。
+                            try { await LP.Sync.pushAll(); } catch (e) { console.warn('[LP] 内容上传失败：', e); }
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
                             console.warn('[LP] 云同步拉取未成功：', remote.reason);
                         }

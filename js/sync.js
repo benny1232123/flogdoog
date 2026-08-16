@@ -39,6 +39,8 @@
         if (!ep) return true;
         if (ep === DEFAULT_SYNC.endpoint) return false;          // 已是正确的默认地址
         if (ep.indexOf('workers.dev') >= 0) return true;          // 旧 Worker 域（手机网络常连不上）
+        // 生产 apex 域 flogdoog.pages.dev（无函数绑定，请求会 404/forbidden）一律迁到 main 预览域
+        if (ep.indexOf('flogdoog.pages.dev') >= 0 && ep.indexOf('main.flogdoog.pages.dev') < 0) return true;
         if (ep === '/api/sync') return true;                      // 旧相对路径（生产域无函数时不工作）
         return false;
     }
@@ -147,8 +149,23 @@
     // 记录最近一次成功推送时间，供实时轮询判断是否「自己刚改的」，避免自回环重渲染
     let _lastPushAt = 0;
 
+    // 顶栏同步状态指示点：init / syncing / ok / error
+    function _setStatus(state, detail) {
+        if (typeof document === 'undefined' || !document.getElementById) return;
+        const el = document.getElementById('sync-status');
+        if (!el) return;
+        const map = { init: '● 同步状态：初始化…', syncing: '⟳ 正在与云端同步…', ok: '✓ 已与云端同步', error: '⚠ 同步异常' };
+        let t = map[state] || '';
+        if (state === 'ok' && detail) t += '（' + detail + '）';
+        else if (state === 'error' && detail) t += '：' + detail;
+        el.dataset.state = state;
+        el.title = t;
+    }
+    function _fmtTime(d) { const p = function (n) { return String(n).padStart(2, '0'); }; return p(d.getHours()) + ':' + p(d.getMinutes()); }
+
     async function pull(prefetched) {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
+        _setStatus('syncing');
         let data;
         if (prefetched !== undefined && prefetched !== null) {
             data = prefetched; // 轮询时已提前取回，避免重复请求
@@ -158,12 +175,13 @@
                     method: 'GET',
                     headers: { 'x-sync-key': cfg.key }
                 });
-                if (res.status === 403) return { ok: false, reason: 'forbidden' };
-                if (!res.ok) return { ok: false, reason: 'http' + res.status };
+                if (res.status === 403) { _setStatus('error', '密钥不对'); return { ok: false, reason: 'forbidden' }; }
+                if (!res.ok) { _setStatus('error', 'HTTP ' + res.status); return { ok: false, reason: 'http' + res.status }; }
                 data = await res.json();
             } catch (e) {
-                if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
+                if (e && e.name === 'AbortError') { _setStatus('error', '超时'); return { ok: false, reason: 'timeout' }; }
                 console.warn('[LP] 云端拉取失败：', e);
+                _setStatus('error', '网络错误');
                 return { ok: false, reason: 'network' };
             }
         }
@@ -204,30 +222,36 @@
                     const n = await pullMedia(data.mediaMeta);
                     if (n) console.info('[LP] 已从云端同步 ' + n + ' 个媒体文件到本机');
                 } catch (e) { console.warn('[LP] 云端媒体导入失败：', e); }
+                _setStatus('ok', _fmtTime(new Date()));
                 return { ok: true, data: data };
             }
+            _setStatus('ok', '云端暂无数据');
             return { ok: true, data: null };
         } catch (e) {
             console.warn('[LP] 云端数据合并失败：', e);
+            _setStatus('error', '合并失败');
             return { ok: false, reason: 'merge' };
         }
     }
 
     async function push(obj) {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
+        _setStatus('syncing');
         try {
             const res = await fetchWithTimeout(cfg.endpoint, {
                 method: 'PUT',
                 headers: { 'content-type': 'application/json', 'x-sync-key': cfg.key },
                 body: JSON.stringify(obj || {})
             });
-            if (res.status === 403) return { ok: false, reason: 'forbidden' };
-            if (!res.ok) return { ok: false, reason: 'http' + res.status };
+            if (res.status === 403) { _setStatus('error', '密钥不对'); return { ok: false, reason: 'forbidden' }; }
+            if (!res.ok) { _setStatus('error', 'HTTP ' + res.status); return { ok: false, reason: 'http' + res.status }; }
             _lastPushAt = Date.now();
+            _setStatus('ok', _fmtTime(new Date()));
             return { ok: true };
         } catch (e) {
-            if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
+            if (e && e.name === 'AbortError') { _setStatus('error', '超时'); return { ok: false, reason: 'timeout' }; }
             console.warn('[LP] 云端推送失败：', e);
+            _setStatus('error', '网络错误');
             return { ok: false, reason: 'network' };
         }
     }
@@ -425,8 +449,8 @@
         try {
             fetchWithTimeout(cfg.endpoint, { method: 'GET', headers: { 'x-sync-key': cfg.key } })
                 .then(function (res) { return res.ok ? res.json() : null; })
-                .then(function (d) { _lastHash = _hashPayload(d); })
-                .catch(function () {});
+                .then(function (d) { _lastHash = _hashPayload(d); _setStatus('ok', '实时同步已开启'); })
+                .catch(function () { _setStatus('error', '拉取基准失败'); });
         } catch (e) {}
         _pollTimer = setInterval(_pollTick, POLL_MS);
         document.addEventListener('visibilitychange', _onVisible);
