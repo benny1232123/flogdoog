@@ -201,7 +201,10 @@
                 if (data.messages && Array.isArray(data.messages)) {
                     try {
                         const local = store.get('lp.messages', null);
-                        const merged = unionMessages(local, data.messages);
+                        let merged = unionMessages(local, data.messages);
+                        // 剔除已被任一端标记为删除的消息（避免云端合并不回来）
+                        const del = store.get('lp.msgDelIds', {}) || {};
+                        if (Object.keys(del).length) merged = merged.filter(function (m) { return !(m.id && del[m.id]); });
                         store.set('lp.messages', merged);
                         if (window.LP && LP.renderMessages) LP.renderMessages();
                     } catch (e) { console.warn('[LP] 悄悄话同步失败：', e); }

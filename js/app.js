@@ -588,20 +588,34 @@
     const MSG_DEL_KEY = 'lp.msgDelIds';
     function getDeletedIds() { return store.get(MSG_DEL_KEY, {}); }
     function addDeletedId(id) {
+        if (!id) return;
         const d = getDeletedIds();
         d[id] = true;
         store.set(MSG_DEL_KEY, d);
     }
-    function isDeleted(id) { return !!(getDeletedIds()[id]); }
+    function isDeleted(id) { return !!(id && getDeletedIds()[id]); }
+
+    // 确定性稳定 id：同一内容在任意设备生成相同 id（保证删除/合并一致，不依赖易变的数组下标）
+    function msgStableId(m) {
+        if (m && m.id) return String(m.id);
+        const base = (m && (m.time || '')) + '|' + (m && (m.author || '')) + '|' + (m && (m.text || ''));
+        return 'm_' + base;
+    }
 
     function getMessages() {
-        const saved = store.get(LS.messages, null);
-        const raw = saved ? saved : (state.config.messages || []).slice();
-        // 过滤掉已删除的消息（跨设备同步的删除会标记在此）
-        return raw.filter(function (m) {
-            const mid = m.id || null;
-            return mid == null || !isDeleted(mid);
+        // 优先用本机已存列表；首次访问以 config 种子作为基础，并统一分配稳定 id 持久化
+        let raw = store.get(LS.messages, null);
+        if (!Array.isArray(raw)) raw = (state.config.messages || []).map(function (m) { return Object.assign({}, m); });
+        let changed = false;
+        raw.forEach(function (m) {
+            const sid = msgStableId(m);
+            if (m.id !== sid) { m.id = sid; changed = true; }
         });
+        if (changed && !store.get(LS.messages, null)) store.set(LS.messages, raw.slice());
+        else if (changed) store.set(LS.messages, raw);
+        // 过滤掉已删除的消息（跨设备同步的删除会标记在此）
+        const del = getDeletedIds();
+        return raw.filter(function (m) { return !del[m.id]; });
     }
 
     function setMessages(list) { store.set(LS.messages, list); }
@@ -713,7 +727,7 @@
         box.innerHTML = list.map((m, i) => {
             const p = partners.find((x) => x.name === m.author);
             const isRight = m.author === rightName;
-            const id = m.id || ('seed' + i);
+            const id = m.id || msgStableId(m);
             const liked = !!likes[id];
             const n = (m.likes || 0) + (liked ? 1 : 0);
 
@@ -761,9 +775,11 @@
         $$('.del-btn', box).forEach((btn) => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.del;
+                if (!id) return;
                 addDeletedId(id);  // 标记为已删除（跨设备同步）
-                const kept = getMessages().filter((m, i) => (m.id || ('seed' + i)) !== id);
-                setMessages(kept);
+                // 从本机消息列表里移除该 id（其余保留），渲染时 getMessages 也会过滤已删除 id
+                const list = store.get(LS.messages, []) || [];
+                setMessages(list.filter(function (m) { return (m.id || msgStableId(m)) !== id; }));
                 renderMessages();
                 toast('已删除');
                 syncMessages(); // 同步删除到云端
