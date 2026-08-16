@@ -215,6 +215,22 @@
                 // 写入覆盖层时剔除媒体元数据（仅云端用，本机以 IndexedDB 为准），避免冗余
                 const overlay = Object.assign({}, data);
                 delete overlay.mediaMeta;
+
+                // ⚠️ 覆盖层空数据保护：如果云端某字段为空但本机有数据，保留本机
+                const localOverlay = store.get(OVERLAY_KEY, {}) || {};
+                ['timeline', 'gallery', 'anniversaries'].forEach(function (key) {
+                    if (Array.isArray(overlay[key]) && overlay[key].length === 0 &&
+                        Array.isArray(localOverlay[key]) && localOverlay[key].length > 0) {
+                        overlay[key] = localOverlay[key]; // 保留本机非空数据
+                    }
+                });
+                // site 字段：云端有值就用云端的（站点配置以最近修改为准），但保护基本结构
+                if (!overlay.site || typeof overlay.site !== 'object' || Object.keys(overlay.site).length === 0) {
+                    if (localOverlay.site && typeof localOverlay.site === 'object' && Object.keys(localOverlay.site).length > 0) {
+                        overlay.site = localOverlay.site;
+                    }
+                }
+
                 store.set(OVERLAY_KEY, overlay); // 覆盖本机覆盖层，供 Editor.applyOverlay 读取
                 // 虚拟房间的装扮也跟着覆盖层一起同步（独立键 lp_room）
                 if (data.room && window.LP && LP.Room) {
@@ -246,6 +262,7 @@
                     } catch (e) { console.warn('[LP] 已删除ID同步失败：', e); }
                 }
                 // 其余独立模块：拉取后深合并（数组按 id 并集、标量云端优先），双方都保留
+                // ⚠️ 空数据保护：如果远程某模块的数组字段为空但本机有数据，保留本机数据不被清空
                 MODULE_SYNC.forEach(function (m) {
                     const rd = data[m.key];
                     if (rd == null) return;
@@ -253,7 +270,17 @@
                     if (!api || !api.importData) return;
                     try {
                         const local = api.exportData ? api.exportData() : null;
-                        const merged = deepMergeModules(local, rd);
+                        // 空数据保护：远程核心数组为空时，若本机有数据则不覆盖
+                        var remoteIsEmpty = false;
+                        if (rd && typeof rd === 'object') {
+                            if (m.key === 'schedule' && Array.isArray(rd.events) && rd.events.length === 0 && local && local.events && local.events.length > 0) remoteIsEmpty = true;
+                            else if (m.key === 'footprint' && Array.isArray(rd.places) && rd.places.length === 0 && local && local.places && local.places.length > 0) remoteIsEmpty = true;
+                            else if (m.key === 'period' && Array.isArray(rd.records) && rd.records.length === 0 && local && local.records && local.records.length > 0) remoteIsEmpty = true;
+                            else if (m.key === 'resources' && Array.isArray(rd.resources) && rd.resources.length === 0 && local && local.resources && local.resources.length > 0) remoteIsEmpty = true;
+                            else if (m.key === 'rating' && rd.scores && ((rd.scores.a_to_b && rd.scores.a_to_b.length === 0 && local && local.scores && local.scores.a_to_b && local.scores.a_to_b.length > 0) || (rd.scores.b_to_a && rd.scores.b_to_a.length === 0 && local && local.scores && local.scores.b_to_a && local.scores.b_to_a.length > 0))) remoteIsEmpty = true;
+                        }
+                        const effectiveRemote = remoteIsEmpty ? local : rd; // 远程为空且有本地数据时，用本地数据代替远程（不回写空）
+                        const merged = deepMergeModules(local, effectiveRemote);
                         const ok = api.importData(merged);
                         // 验证：importData 写入后立即读回确认
                         if (ok && api.exportData) {
@@ -503,6 +530,10 @@
         } catch (e) { return null; }
     }
 
+    // 节流渲染：避免实时轮询频繁触发全量重渲染导致页面闪烁
+    let _lastRenderAt = 0;
+    const RENDER_THROTTLE_MS = 8000; // 至少间隔 8 秒才重新渲染
+
     async function _pollTick() {
         if (!isConfigured() || document.hidden) return;
         if (Date.now() - _lastPushAt < 3000) return; // 刚推送过本机内容，跳过自回环
@@ -519,15 +550,27 @@
             if (hash == null || hash === _lastHash) return; // 没变化
             _lastHash = hash;
             await pull(data); // 传入已取回的数据，避免重复请求
-            if (window.LP && LP.renderAll) LP.renderAll();
-            if (window.LP && LP.renderMessages) LP.renderMessages();
+
+            // 节流渲染：避免每 3 秒全量重渲染导致闪烁
+            var now = Date.now();
+            if (now - _lastRenderAt >= RENDER_THROTTLE_MS) {
+                _lastRenderAt = now;
+                if (window.LP && LP.renderAll) LP.renderAll();
+                if (window.LP && LP.renderMessages) LP.renderMessages();
+            } else {
+                console.log('[LP] 实时同步：数据已更新（节流渲染，' +
+                    Math.ceil((RENDER_THROTTLE_MS - (now - _lastRenderAt)) / 1000) + 's 后刷新 UI）');
+            }
         } catch (e) {
             console.warn('[LP] 实时同步轮询失败：', e);
         }
     }
 
     function _onVisible() {
-        if (_liveOn && !document.hidden) _pollTick(); // 切回前台立即同步一次
+        if (_liveOn && !document.hidden) {
+            _lastRenderAt = 0; // 重置节流，允许立即渲染
+            _pollTick(); // 切回前台立即同步一次
+        }
     }
 
     function startLiveSync() {

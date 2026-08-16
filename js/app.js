@@ -1159,7 +1159,13 @@
     function renderMoodHistory(data) {
         var histEl = $('#mood-history');
         if (!histEl) return;
-        var recent = (data.history || []).slice(0, 10);
+        // 按时间降序排列（最新的在最上面），再取前 10 条
+        var sorted = (data.history || []).slice().sort(function (a, b) {
+            var ta = a.time ? new Date(a.time).getTime() : 0;
+            var tb = b.time ? new Date(b.time).getTime() : 0;
+            return tb - ta; // 降序：新→旧
+        });
+        var recent = sorted.slice(0, 10);
         if (recent.length === 0) { histEl.innerHTML = '<p class="mood-empty">还没有心情记录</p>'; return; }
         var cpl = state.config.couple;
         var nameA = (cpl && cpl.a && cpl.a.name) || '阿蛙';
