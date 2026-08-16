@@ -226,7 +226,29 @@
                     if (!api || !api.importData) return;
                     try {
                         const local = api.exportData ? api.exportData() : null;
-                        api.importData(deepMergeModules(local, rd));
+                        const merged = deepMergeModules(local, rd);
+                        const ok = api.importData(merged);
+                        // 验证：importData 写入后立即读回确认
+                        if (ok && api.exportData) {
+                            const verify = api.exportData();
+                            const verifyStr = JSON.stringify(verify);
+                            // 如果写入后读回为空但云端有数据，说明 importData 静默失败，强制直写 localStorage
+                            if (!verifyStr || verifyStr === '{}' || verifyStr === '{"currentA":null,"currentB":null,"history":[]}') {
+                                if (JSON.stringify(rd).length > 50) {
+                                    console.warn('[LP] 模块 ' + m.key + ' importData 验证失败，尝试直写');
+                                    try {
+                                        // 对 mood 等模块，直接用 store 写入其内部 key
+                                if (m.ns === 'Mood') store.set('lp_mood', rd);
+                                else if (m.ns === 'Schedule') store.set('lp_schedule', rd);
+                                else if (m.ns === 'Rating') store.set('lp_rating', rd);
+                                else if (m.ns === 'Resources') store.set('lp_resources', rd);
+                                else if (m.ns === 'Footprint') store.set('lp_footprint', rd);
+                                else if (m.ns === 'Period') store.set('lp_period', rd);
+                                        console.info('[LP] 模块 ' + m.key + ' 已直写兜底恢复');
+                                    } catch (e2) { console.warn('[LP] 模块 ' + m.key + ' 直写也失败:', e2); }
+                                }
+                            }
+                        }
                     } catch (e) { console.warn('[LP] 模块同步失败: ' + m.key, e); }
                 });
                 // 云端媒体（分键存储）：按 mediaMeta 列表把本机缺失的文件从 /api/sync/media/<id> 拉回本机 IndexedDB
@@ -408,7 +430,7 @@
        让「这一边改完，另一边立刻看到」：本机每隔 POLL_MS 拉一次云端，
        若云端内容与上次不同（指纹变化），则合并到本机并局部重渲染当前视图。
        自己刚推送过的内容在 3s 内不重拉，避免自回环闪烁。 */
-    const POLL_MS = 4000;
+    const POLL_MS = 3000; // 每 3 秒轮询（1.2s 防抖 + 3s 轮询 ≈ 最坏 4.5 秒对方可见）
     let _pollTimer = null;
     let _liveOn = false;
     let _lastHash = null;
