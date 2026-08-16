@@ -144,16 +144,31 @@
         { ns: 'Period', key: 'period', arr: false }
     ];
 
-    async function pull() {
+    // 记录最近一次成功推送时间，供实时轮询判断是否「自己刚改的」，避免自回环重渲染
+    let _lastPushAt = 0;
+
+    async function pull(prefetched) {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
+        let data;
+        if (prefetched !== undefined && prefetched !== null) {
+            data = prefetched; // 轮询时已提前取回，避免重复请求
+        } else {
+            try {
+                const res = await fetchWithTimeout(cfg.endpoint, {
+                    method: 'GET',
+                    headers: { 'x-sync-key': cfg.key }
+                });
+                if (res.status === 403) return { ok: false, reason: 'forbidden' };
+                if (!res.ok) return { ok: false, reason: 'http' + res.status };
+                data = await res.json();
+            } catch (e) {
+                if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
+                console.warn('[LP] 云端拉取失败：', e);
+                return { ok: false, reason: 'network' };
+            }
+        }
+        // 合并云端数据到本机（可能抛错，统一兜底）
         try {
-            const res = await fetchWithTimeout(cfg.endpoint, {
-                method: 'GET',
-                headers: { 'x-sync-key': cfg.key }
-            });
-            if (res.status === 403) return { ok: false, reason: 'forbidden' };
-            if (!res.ok) return { ok: false, reason: 'http' + res.status };
-            const data = await res.json();
             // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回空
             if (data && typeof data === 'object' && Object.keys(data).length) {
                 // 写入覆盖层时剔除媒体元数据（仅云端用，本机以 IndexedDB 为准），避免冗余
@@ -193,9 +208,8 @@
             }
             return { ok: true, data: null };
         } catch (e) {
-            if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
-            console.warn('[LP] 云端拉取失败：', e);
-            return { ok: false, reason: 'network' };
+            console.warn('[LP] 云端数据合并失败：', e);
+            return { ok: false, reason: 'merge' };
         }
     }
 
@@ -209,6 +223,7 @@
             });
             if (res.status === 403) return { ok: false, reason: 'forbidden' };
             if (!res.ok) return { ok: false, reason: 'http' + res.status };
+            _lastPushAt = Date.now();
             return { ok: true };
         } catch (e) {
             if (e && e.name === 'AbortError') return { ok: false, reason: 'timeout' };
@@ -348,10 +363,87 @@
         }, 1200);
     }
 
+    /* ---------------- 实时同步（轮询拉取） ----------------
+       让「这一边改完，另一边立刻看到」：本机每隔 POLL_MS 拉一次云端，
+       若云端内容与上次不同（指纹变化），则合并到本机并局部重渲染当前视图。
+       自己刚推送过的内容在 3s 内不重拉，避免自回环闪烁。 */
+    const POLL_MS = 4000;
+    let _pollTimer = null;
+    let _liveOn = false;
+    let _lastHash = null;
+
+    // 计算云端内容指纹：只取会被同步的关键字段，变化才触发重渲染
+    function _hashPayload(data) {
+        if (!data || typeof data !== 'object') return null;
+        try {
+            return JSON.stringify({
+                o: data.site,
+                m: data.messages,
+                r: data.room,
+                sc: data.schedule,
+                md: data.mood,
+                rt: data.rating,
+                rs: data.resources,
+                fp: data.footprint,
+                pd: data.period,
+                mm: data.mediaMeta ? Object.keys(data.mediaMeta).sort().join('|') : ''
+            });
+        } catch (e) { return null; }
+    }
+
+    async function _pollTick() {
+        if (!isConfigured() || document.hidden) return;
+        if (Date.now() - _lastPushAt < 3000) return; // 刚推送过本机内容，跳过自回环
+        try {
+            const res = await fetchWithTimeout(cfg.endpoint, {
+                method: 'GET',
+                headers: { 'x-sync-key': cfg.key }
+            });
+            if (res.status === 403) return;
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data || typeof data !== 'object' || !Object.keys(data).length) return;
+            const hash = _hashPayload(data);
+            if (hash == null || hash === _lastHash) return; // 没变化
+            _lastHash = hash;
+            await pull(data); // 传入已取回的数据，避免重复请求
+            if (window.LP && LP.renderAll) LP.renderAll();
+            if (window.LP && LP.renderMessages) LP.renderMessages();
+        } catch (e) {
+            console.warn('[LP] 实时同步轮询失败：', e);
+        }
+    }
+
+    function _onVisible() {
+        if (_liveOn && !document.hidden) _pollTick(); // 切回前台立即同步一次
+    }
+
+    function startLiveSync() {
+        if (_liveOn || !isConfigured()) return;
+        _liveOn = true;
+        // 先取一次云端指纹作为基准，避免启动后立刻多余重渲染
+        try {
+            fetchWithTimeout(cfg.endpoint, { method: 'GET', headers: { 'x-sync-key': cfg.key } })
+                .then(function (res) { return res.ok ? res.json() : null; })
+                .then(function (d) { _lastHash = _hashPayload(d); })
+                .catch(function () {});
+        } catch (e) {}
+        _pollTimer = setInterval(_pollTick, POLL_MS);
+        document.addEventListener('visibilitychange', _onVisible);
+    }
+
+    function stopLiveSync() {
+        _liveOn = false;
+        if (_pollTimer) clearInterval(_pollTimer);
+        _pollTimer = null;
+        document.removeEventListener('visibilitychange', _onVisible);
+    }
+
     LP.Sync = {
         isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC,
         isFactoryDefault, resetToFactory,
-        buildOverlayPayload, buildFullPayload, pushAll, pushMedia, schedulePushAll
+        buildOverlayPayload, buildFullPayload, pushAll, pushMedia, schedulePushAll,
+        startLiveSync, stopLiveSync
     };
 
 })(window.LP);

@@ -567,6 +567,8 @@ window.LP = (function () {
                         }
                     } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
                 }
+                // 启动实时同步：之后本设备每隔几秒拉取云端，对方改动能立即显示
+                if (LP.Sync) LP.Sync.startLiveSync();
             })();
         });
     }

@@ -1865,6 +1865,16 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     border-radius: 999px; padding: 2px 8px; white-space: nowrap;
 }
 
+/* 日程日历容器：与「经期」日历同尺寸（居中对齐 + 卡片样式） */
+.sched-cal-wrap {
+    max-width: 420px;
+    margin: 0 auto 28px;
+    background: var(--surface-solid, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 16px;
+}
+
 /* 日历导航 */
 .sched-cal-nav {
     display: flex;
