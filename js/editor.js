@@ -120,7 +120,7 @@
     }
 
     /* ---------------- 持久化并刷新前台 ---------------- */
-    function commit() {
+    async function commit() {
         saveOverlay();
         state.config.site = clone(working.site);
         state.config.couple = clone(working.couple);
@@ -136,17 +136,13 @@
             if (LP.startCounter) LP.startCounter();
             if (LP.renderMessages) LP.renderMessages();
         });
-        // 云端同步（已配置则推送最新覆盖层）
+        // 云端同步（已配置则推送最新覆盖层 + 媒体元数据，并防抖上传媒体分键）
         if (LP.Sync && LP.Sync.isConfigured()) {
-            const obj = {
-                site: working.site, couple: working.couple,
-                anniversaries: working.anniversaries, timeline: working.timeline, gallery: working.gallery,
-                room: (window.LP && LP.Room) ? LP.Room.exportData() : null,
-                messages: store.get('lp.messages', null)  // 悄悄话留言板一并同步
-            };
-            LP.Sync.push(obj).then((r) => { if (r && r.ok) toast('已同步到云端'); else if (r && r.reason === 'forbidden') toast('同步失败：密钥不对'); });
-            // 媒体（图片/视频）改动走全量上传（含 base64 媒体），防抖合并请求
-            if (LP.Sync.schedulePushAll) LP.Sync.schedulePushAll();
+            LP.Sync.push(await LP.Sync.buildOverlayPayload()).then((r) => {
+                if (r && r.ok) toast('已同步到云端');
+                else if (r && r.reason === 'forbidden') toast('同步失败：密钥不对');
+            });
+            if (LP.Sync.schedulePushAll) LP.Sync.schedulePushAll(); // 媒体字节（图片/视频）走分键上传
         }
     }
 
@@ -541,10 +537,11 @@
                 } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 同步后媒体解析失败：', e); }
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
-                // ④ 把合并后的全集推回云端（含所有独立模块 + 全部图片/视频媒体）
+                // ④ 把合并后的全集推回云端（含所有独立模块 + 媒体元数据），并上传媒体分键字节
                 // pull 已先合并，确保不互相覆盖；buildFullPayload 为异步（需 await）
                 const obj = await LP.Sync.buildFullPayload();
                 const ok = await LP.Sync.push(obj);
+                if (ok.ok && LP.Sync.pushMedia) await LP.Sync.pushMedia();
                 if (!ok.ok) {
                     const msg = { forbidden: '同步失败：密钥不对', timeout: '同步超时：检查网络或地址是否可达', network: '同步失败：网络错误（地址不可达？）', unconfigured: '请先填写同步地址和密钥' }[ok.reason] || '上传失败，检查地址/密钥或网络';
                     toast(msg); return;

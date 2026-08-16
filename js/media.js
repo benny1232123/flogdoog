@@ -82,46 +82,37 @@ window.LPMedia = (function () {
     }
 
     /* ---------------- 云端媒体 → 写回本机 IndexedDB（作为本地缓存） ----------------
-       mediaMap: { id: { kind, name, mime, caption, date, w, h, size, duration, blob(base64), poster(base64?) } }
-       已存在的 id 不覆盖；返回实际导入数量。 */
-    async function importCloud(mediaMap) {
-        if (!mediaMap || typeof mediaMap !== 'object') return 0;
-        let count = 0;
-        const ids = Object.keys(mediaMap);
-        for (let i = 0; i < ids.length; i++) {
-            const id = ids[i];
-            try {
-                const exist = await get(id);
-                if (exist && exist.blob) continue; // 本机已有，不覆盖
-                const m = mediaMap[id];
-                if (!m || !m.blob) continue;
-                const blob = base64ToBlob(m.blob, m.mime);
-                if (!blob) continue;
-                const rec = {
-                    id,
-                    kind: m.kind || (m.mime && m.mime.indexOf('video') >= 0 ? 'video' : 'image'),
-                    name: m.name || (id + '.bin'),
-                    mime: m.mime || blob.type,
-                    caption: m.caption || '',
-                    date: m.date || '',
-                    createdAt: Date.now(),
-                    w: m.w || null,
-                    h: m.h || null,
-                    size: m.size || blob.size,
-                    duration: m.duration || null,
-                    blob
-                };
-                if (m.poster) {
-                    const p = base64ToBlob(m.poster, 'image/jpeg');
-                    if (p) rec.poster = p;
-                }
-                await put(rec);
-                count++;
-            } catch (e) {
-                console.warn('[LPMedia] 导入云端媒体失败: ' + id, e);
-            }
+       @param {string} id  媒体 id（与云端 media:<id> 对应）
+       @param {Blob} blob 已取回的原始字节
+       @param {object} meta mediaMeta 中的元数据 {kind,name,mime,caption,date,w,h,size,duration}
+       @param {Blob|null} posterBlob 封面原始字节（可选）
+       已存在的 id 不覆盖；返回是否实际写入。 */
+    async function putRemote(id, blob, meta, posterBlob) {
+        if (!id || !blob) return false;
+        try {
+            const exist = await get(id);
+            if (exist && exist.blob) return false; // 本机已有，不覆盖
+            const rec = {
+                id,
+                kind: (meta && meta.kind) || (blob.type && blob.type.indexOf('video') >= 0 ? 'video' : 'image'),
+                name: (meta && meta.name) || (id + '.bin'),
+                mime: (meta && meta.mime) || blob.type,
+                caption: (meta && meta.caption) || '',
+                date: (meta && meta.date) || '',
+                createdAt: Date.now(),
+                w: (meta && meta.w) || null,
+                h: (meta && meta.h) || null,
+                size: (meta && meta.size) || blob.size,
+                duration: (meta && meta.duration) || null,
+                blob
+            };
+            if (posterBlob) rec.poster = posterBlob;
+            await put(rec);
+            return true;
+        } catch (e) {
+            console.warn('[LPMedia] 写入云端媒体失败: ' + id, e);
+            return false;
         }
-        return count;
     }
 
     /* ---------------- 容量估算 ---------------- */
@@ -368,5 +359,5 @@ window.LPMedia = (function () {
         urls.clear();
     }
 
-    return { all, get, put, del, clear, addFiles, putImage, urlOf, estimate, fmtSize, toURL, revokeAll, importCloud };
+    return { all, get, put, del, clear, addFiles, putImage, urlOf, estimate, fmtSize, toURL, revokeAll, putRemote };
 })();

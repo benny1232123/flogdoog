@@ -3,7 +3,8 @@
    作用：让编辑结果在多台设备间自动一致。
       · 本机配置（云端地址 + 密钥）存 localStorage 键 lp.sync，不随覆盖层同步
       · 覆盖层（站点/资料/纪念日/时间轴/照片墙文本结构）存远端 KV
-      · 图片/视频：本机存 IndexedDB，云端同步时转 base64 一并带上（KV 单值上限 25MB，已做容量保护）
+      · 图片/视频：本机存 IndexedDB；云端按文件分键存储（media:<id>，字节原始存储），
+        故总量不受 KV 25MB 单值限制，仅单文件 ≤25MB（KV 硬上限）。元数据(mediaMeta)随主 JSON 同步。
    同步策略：最后写入覆盖（last-write-wins），适合两人站点。
    站点未配置云端时完全离线工作，不影响任何功能。
    ========================================================= */
@@ -15,21 +16,12 @@
     const OVERLAY_KEY = 'lp.userData'; // 与编辑器共用的覆盖层键
 
     const TIMEOUT_MS = 20000; // 单次请求最多等 20s，避免无限「同步中」
-    const MEDIA_CAP = 20 * 1024 * 1024; // 云端媒体 base64 上限（KV 单值上限 25MB，留余量防撑爆）
+    // 单个媒体文件上限：KV 单值硬上限 25MB，超出则跳过（仅本机可见）。
+    // 总量不受限：每个文件单独存一个 KV key（media:<id>），键数量不限。
+    const PER_FILE_CAP = 25 * 1024 * 1024;
 
-    // Blob → base64（去掉 data: 前缀），用于把本机媒体随同步上传
-    function blobToB64(blob) {
-        return new Promise(function (res, rej) {
-            const fr = new FileReader();
-            fr.onload = function () {
-                const s = String(fr.result);
-                const i = s.indexOf(',');
-                res(i >= 0 ? s.slice(i + 1) : s);
-            };
-            fr.onerror = function () { rej(fr.error || new Error('读取失败')); };
-            fr.readAsDataURL(blob);
-        });
-    }
+    function mediaListUrl() { return (cfg.endpoint || '').replace(/\/+$/, '') + '/media'; }
+    function mediaItemUrl(id) { return (cfg.endpoint || '').replace(/\/+$/, '') + '/media/' + encodeURIComponent(id); }
 
     // 默认后端：站点同域 Pages Function（main.flogdoog.pages.dev/api/sync）。
     // 说明：flogdoog.pages.dev 生产域由 git 构建提供、目前未挂函数；主别名 main.* 直接部署带函数，
@@ -164,9 +156,9 @@
             const data = await res.json();
             // 空对象 {} 视为「云端还没有数据」——不要覆盖本机，直接返回空
             if (data && typeof data === 'object' && Object.keys(data).length) {
-                // 写入覆盖层时剔除巨大的 media 字段（base64），避免撑爆 localStorage 配额
+                // 写入覆盖层时剔除媒体元数据（仅云端用，本机以 IndexedDB 为准），避免冗余
                 const overlay = Object.assign({}, data);
-                delete overlay.media;
+                delete overlay.mediaMeta;
                 store.set(OVERLAY_KEY, overlay); // 覆盖本机覆盖层，供 Editor.applyOverlay 读取
                 // 虚拟房间的装扮也跟着覆盖层一起同步（独立键 lp_room）
                 if (data.room && window.LP && LP.Room) {
@@ -192,13 +184,11 @@
                         api.importData(deepMergeModules(local, rd));
                     } catch (e) { console.warn('[LP] 模块同步失败: ' + m.key, e); }
                 });
-                // 云端媒体（base64）→ 写回本机 IndexedDB，作为本地缓存，供 resolveMediaRefs / 照片墙使用
-                if (data.media && typeof data.media === 'object' && window.LPMedia && window.LPMedia.importCloud) {
-                    try {
-                        const n = await window.LPMedia.importCloud(data.media);
-                        if (n) console.info('[LP] 已从云端同步 ' + n + ' 个媒体文件到本机');
-                    } catch (e) { console.warn('[LP] 云端媒体导入失败：', e); }
-                }
+                // 云端媒体（分键存储）：按 mediaMeta 列表把本机缺失的文件从 /api/sync/media/<id> 拉回本机 IndexedDB
+                try {
+                    const n = await pullMedia(data.mediaMeta);
+                    if (n) console.info('[LP] 已从云端同步 ' + n + ' 个媒体文件到本机');
+                } catch (e) { console.warn('[LP] 云端媒体导入失败：', e); }
                 return { ok: true, data: data };
             }
             return { ok: true, data: null };
@@ -227,67 +217,122 @@
         }
     }
 
-    // 构造推送包：仅编辑器覆盖层 + 悄悄话 + 房间（编辑器保存时用，不影响其他模块）
-    function buildOverlayPayload() {
+    // 构造推送包：编辑器覆盖层 + 悄悄话 + 房间 + 媒体元数据（编辑器保存/快速同步时用）
+    async function buildOverlayPayload() {
         const p = Object.assign({}, store.get(OVERLAY_KEY, {}) || {});
         p.messages = store.get('lp.messages', null);
         const room = window.LP && window.LP.Room;
         p.room = (room && room.exportData) ? room.exportData() : null;
+        p.mediaMeta = await buildMediaMeta(); // 带上媒体元数据，避免快速推送把云端 mediaMeta 覆盖掉
         return p;
     }
 
-    // 把本机 IndexedDB 的全部媒体转 base64 构建成 { id: {...} }；超出 MEDIA_CAP 的部分跳过并计入 skipped
+    // 媒体元数据（文本，存入主 JSON 覆盖层，不含 base64 字节）：id → {kind,name,mime,caption,date,w,h,size,duration,hasPoster}
+    // 实际字节按 id 单独存 KV 键 media:<id>，故总量不受 25MB 限制（仅单文件 ≤25MB）
     let _mediaSkipped = 0;
-    async function buildMediaMap() {
-        const out = { map: {}, skipped: [], total: 0 };
-        if (!(window.LPMedia && window.LPMedia.all)) return out;
+
+    async function buildMediaMeta() {
+        const map = {};
+        if (!(window.LPMedia && window.LPMedia.all)) return map;
         let recs;
-        try { recs = await window.LPMedia.all(); } catch (e) { return out; }
+        try { recs = await window.LPMedia.all(); } catch (e) { return map; }
+        recs.forEach(function (r) {
+            if (!r || !r.id) return;
+            map[r.id] = {
+                kind: r.kind, name: r.name, mime: r.mime, caption: r.caption,
+                date: r.date, w: r.w, h: r.h, size: r.size, duration: r.duration,
+                hasPoster: !!(r.poster && r.poster.size)
+            };
+        });
+        return map;
+    }
+
+    // 拉取云端媒体：按 mediaMeta 列表，把本机缺失的文件从 /api/sync/media/<id> 取回并写入本机 IndexedDB
+    async function pullMedia(meta) {
+        if (!meta || !window.LPMedia || !window.LPMedia.putRemote) return 0;
+        const ids = Object.keys(meta);
+        if (!ids.length) return 0;
+        let imported = 0;
+        try {
+            const listRes = await fetchWithTimeout(mediaListUrl(), { headers: { 'x-sync-key': cfg.key } });
+            const cloudIds = listRes.ok ? (await listRes.json()) : [];
+            const cloudSet = new Set(cloudIds);
+            for (let i = 0; i < ids.length; i++) {
+                const id = ids[i];
+                if (!cloudSet.has(id)) continue;          // 云端没有这个文件
+                const exist = await window.LPMedia.get(id);
+                if (exist && exist.blob) continue;         // 本机已有
+                try {
+                    const bres = await fetchWithTimeout(mediaItemUrl(id), { headers: { 'x-sync-key': cfg.key } });
+                    if (!bres.ok) continue;
+                    const blob = new Blob([await bres.arrayBuffer()], { type: meta[id].mime || 'application/octet-stream' });
+                    let poster = null;
+                    if (meta[id].hasPoster) {
+                        try {
+                            const pres = await fetchWithTimeout(mediaItemUrl(id + '@poster'), { headers: { 'x-sync-key': cfg.key } });
+                            if (pres.ok) poster = new Blob([await pres.arrayBuffer()], { type: 'image/jpeg' });
+                        } catch (e) { /* 封面失败不影响主文件 */ }
+                    }
+                    await window.LPMedia.putRemote(id, blob, meta[id], poster);
+                    imported++;
+                } catch (e) { console.warn('[LP] 拉取媒体失败: ' + id, e); }
+            }
+        } catch (e) { console.warn('[LP] 拉取媒体列表失败：', e); }
+        return imported;
+    }
+
+    // 推送云端媒体：仅上传本机有、且云端缺失的文件（按 id 跳过已存在），单文件超 25MB 跳过
+    async function pushMedia() {
+        if (!window.LPMedia || !window.LPMedia.all) return;
+        let recs;
+        try { recs = await window.LPMedia.all(); } catch (e) { return; }
+        const cloudIds = new Set();
+        try {
+            const r = await fetchWithTimeout(mediaListUrl(), { headers: { 'x-sync-key': cfg.key } });
+            if (r.ok) (await r.json()).forEach(function (id) { cloudIds.add(id); });
+        } catch (e) { /* 列表失败则全部尝试上传 */ }
+        _mediaSkipped = 0;
         for (let i = 0; i < recs.length; i++) {
             const r = recs[i];
             if (!r || !r.blob) continue;
-            let b64;
-            try { b64 = await blobToB64(r.blob); } catch (e) { out.skipped.push(r.name || r.id); continue; }
-            const posterSize = (r.poster && r.poster.size) ? r.poster.size : 0;
-            const itemSize = b64.length + posterSize;
-            // 单个文件过大 → 跳过（避免一次上传把整个 KV 撑爆）
-            if (itemSize > MEDIA_CAP) { out.skipped.push(r.name || r.id); continue; }
-            // 累计超过上限 → 剩下的跳过（保证 PUT 不超 25MB）
-            if (out.total + itemSize > MEDIA_CAP && Object.keys(out.map).length) { out.skipped.push(r.name || r.id); continue; }
-            const item = {
-                kind: r.kind, name: r.name, mime: r.mime, caption: r.caption,
-                date: r.date, w: r.w, h: r.h, size: r.size, duration: r.duration, blob: b64
-            };
-            if (r.poster && r.poster.size) {
-                try { item.poster = await blobToB64(r.poster); } catch (e) { /* 封面失败不影响主文件 */ }
-            }
-            out.map[r.id] = item;
-            out.total += itemSize;
+            if (r.blob.size > PER_FILE_CAP) { _mediaSkipped++; continue; }
+            if (cloudIds.has(r.id)) continue;
+            try {
+                await fetchWithTimeout(mediaItemUrl(r.id), {
+                    method: 'PUT',
+                    headers: { 'content-type': r.mime || 'application/octet-stream', 'x-sync-key': cfg.key },
+                    body: r.blob
+                });
+                if (r.poster && r.poster.size) {
+                    await fetchWithTimeout(mediaItemUrl(r.id + '@poster'), {
+                        method: 'PUT',
+                        headers: { 'content-type': 'image/jpeg', 'x-sync-key': cfg.key },
+                        body: r.poster
+                    });
+                }
+            } catch (e) { console.warn('[LP] 上传媒体失败: ' + (r.name || r.id), e); }
         }
-        return out;
     }
 
-    // 构造全量推送包：覆盖层 + 悄悄话 + 房间 + 所有独立模块 + 全部媒体（立即同步/开机上传时用）
+    // 构造全量推送包：覆盖层 + 悄悄话 + 房间 + 所有独立模块 + 媒体元数据（字节走分键，不在此 JSON 内）
     async function buildFullPayload() {
-        const p = buildOverlayPayload();
+        const p = await buildOverlayPayload();
         ['Mood', 'Schedule', 'Rating', 'Resources', 'Footprint', 'Period'].forEach(function (ns) {
             const api = window.LP && window.LP[ns];
             if (api && api.exportData) p[ns.toLowerCase()] = api.exportData();
         });
-        const media = await buildMediaMap();
-        p.media = media.map;
-        _mediaSkipped = media.skipped.length;
         return p;
     }
 
-    // 先拉取合并再上传全量，确保不会用本机旧内容覆盖对方改动（收敛所有模块）
+    // 先拉取合并再上传全量（含媒体分键上传），确保不会用本机旧内容覆盖对方改动
     async function pushAll() {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try { await pull(); } catch (e) { console.warn('[LP] pushAll 预拉取失败（继续上传）', e); }
         const r = await push(await buildFullPayload());
+        if (r.ok) await pushMedia();
         if (r.ok && _mediaSkipped) {
-            if (LP.toast) LP.toast('有 ' + _mediaSkipped + ' 个媒体文件过大未同步（仅本机可见）');
-            console.warn('[LP] ' + _mediaSkipped + ' 个媒体因超过云端容量上限未同步');
+            if (LP.toast) LP.toast('有 ' + _mediaSkipped + ' 个媒体文件超过 25MB 未同步（仅本机可见）');
+            console.warn('[LP] ' + _mediaSkipped + ' 个媒体单文件超过 KV 25MB 上限未同步');
         }
         return r;
     }
@@ -306,7 +351,7 @@
     LP.Sync = {
         isConfigured, configure, status, pull, push, TIMEOUT_MS, DEFAULT_SYNC,
         isFactoryDefault, resetToFactory,
-        buildOverlayPayload, buildFullPayload, pushAll, schedulePushAll
+        buildOverlayPayload, buildFullPayload, pushAll, pushMedia, schedulePushAll
     };
 
 })(window.LP);
