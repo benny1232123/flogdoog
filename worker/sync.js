@@ -47,7 +47,7 @@ export default {
             try { JSON.parse(body); } catch (e) {
                 return new Response('invalid json', { status: 400, headers: CORS });
             }
-            await ns.put(KV_KEY, body, { expirationTtl: 60 * 60 * 24 * 365 * 5 });
+            await ns.put(KV_KEY, body);
             return new Response('ok', { status: 200, headers: CORS });
         }
 

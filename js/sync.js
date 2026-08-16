@@ -113,8 +113,20 @@
         return out;
     }
 
+    // 取两个带 time 字段的对象中时间较新者；无 time 时按传入顺序（remote 优先）
+    function laterTime(a, b) {
+        if (!a) return b;
+        if (!b) return a;
+        let ta = a.time ? Date.parse(a.time) : NaN;
+        let tb = b.time ? Date.parse(b.time) : NaN;
+        if (isNaN(ta)) ta = 0;
+        if (isNaN(tb)) tb = 0;
+        return tb >= ta ? b : a;
+    }
+
     // 通用深合并：数组字段按 id 并集，对象字段递归合并，其余标量云端优先；用于各独立模块的云端合并
     // ⚠️ null 保护：云端的 null/undefined 不会覆盖本机的有效非 null 值（避免某端清除心情后把另一端的心情也清掉）
+    // ⚠️ 时间优先：currentA/currentB 等带 time 的「当前状态」对象，双方都非 null 时取时间较新的一方（避免旧心情覆盖新心情）
     function deepMergeModules(local, remote) {
         const idKey = function (x) { return x && x.id != null ? String(x.id) : JSON.stringify(x); };
         if (Array.isArray(remote)) {
@@ -123,19 +135,22 @@
         if (remote && typeof remote === 'object') {
             const base = (local && typeof local === 'object') ? local : {};
             const out = Object.assign({}, base, remote);
-            // null 保护：如果 remote 某字段为 null/undefined 但 base 有有效值，保留 base 的值
-            Object.keys(base).forEach(function (k) {
-                if (out[k] == null && base[k] != null && typeof base[k] === 'object') {
-                    out[k] = JSON.parse(JSON.stringify(base[k])); // 深拷贝避免引用污染
-                }
-            });
             Object.keys(remote).forEach(function (k) {
                 const rv = remote[k], bv = base[k];
                 if (Array.isArray(rv) && Array.isArray(bv)) {
-                    out[k] = unionById(bv, rv, idKey);
+                    out[k] = unionById(bv, rv, idKey); // 数组按 id 并集（如 history/scores）
                 } else if (rv && typeof rv === 'object' && !Array.isArray(rv) && bv && typeof bv === 'object' && !Array.isArray(bv)) {
-                    out[k] = deepMergeModules(bv, rv); // 递归合并嵌套对象（如 rating.scores）
+                    if (rv.time && bv.time) {
+                        // 带 time 的「当前状态」对象（currentA/currentB）→ 较新时间优先
+                        out[k] = JSON.parse(JSON.stringify(laterTime(rv, bv)));
+                    } else {
+                        out[k] = deepMergeModules(bv, rv); // 递归合并嵌套对象（如 rating.scores）
+                    }
+                } else if (rv == null && bv != null && typeof bv === 'object') {
+                    // null 保护：云端为 null 但本机有有效对象值，保留本机
+                    out[k] = JSON.parse(JSON.stringify(bv));
                 }
+                // 其余（标量或一方缺失）：Object.assign 已让云端值优先，符合预期
             });
             return out;
         }
@@ -155,6 +170,7 @@
 
     // 记录最近一次成功推送时间，供实时轮询判断是否「自己刚改的」，避免自回环重渲染
     let _lastPushAt = 0;
+    let _lastPushedHash = null; // 上次成功推送的内容指纹，用于跳过冗余写（节省 KV 每日写入配额）
 
     // 顶栏同步状态指示点：init / syncing / ok / error
     function _setStatus(state, detail) {
@@ -424,16 +440,25 @@
     async function pushAll() {
         if (!isConfigured()) return { ok: false, reason: 'unconfigured' };
         try { await pull(); } catch (e) { console.warn('[LP] pushAll 预拉取失败（继续上传）', e); }
-        const r = await push(await buildFullPayload());
-        if (r.ok) await pushMedia();
-        if (r.ok && _mediaSkipped) {
-            if (LP.toast) LP.toast('有 ' + _mediaSkipped + ' 个媒体文件超过 25MB 未同步（仅本机可见）');
-            console.warn('[LP] ' + _mediaSkipped + ' 个媒体单文件超过 KV 25MB 上限未同步');
+        const payload = await buildFullPayload();
+        // 冗余推送跳过：若本次内容与上次成功推送完全一致，不再写云端。
+        // 原因：实时轮询 pull→importData→save→schedulePushAll 会形成每 3s 一次的空写，
+        // 很快耗尽 Cloudflare 免费版 KV 的「每日 1000 次写」配额，导致之后所有 push 失败（1101/limit exceeded）。
+        const h = _payloadHash(payload);
+        if (h && h === _lastPushedHash) return { ok: true, skipped: true };
+        const r = await push(payload);
+        if (r.ok) {
+            _lastPushedHash = h;
+            await pushMedia();
+            if (_mediaSkipped) {
+                if (LP.toast) LP.toast('有 ' + _mediaSkipped + ' 个媒体文件超过 25MB 未同步（仅本机可见）');
+                console.warn('[LP] ' + _mediaSkipped + ' 个媒体单文件超过 KV 25MB 上限未同步');
+            }
         }
         return r;
     }
 
-    // 防抖自动同步：各模块保存时调用，避免频繁请求
+    // 防抖自动同步：各模块保存时调用，避免频繁请求（3s 防抖，进一步合并连续改动、节省写入配额）
     let _pushTimer = null;
     function schedulePushAll() {
         if (!isConfigured()) return;
@@ -441,7 +466,7 @@
         _pushTimer = setTimeout(function () {
             _pushTimer = null;
             pushAll().catch(function (e) { console.warn('[LP] 自动同步失败：', e); });
-        }, 1200);
+        }, 3000);
     }
 
     /* ---------------- 实时同步（轮询拉取） ----------------
@@ -452,6 +477,11 @@
     let _pollTimer = null;
     let _liveOn = false;
     let _lastHash = null;
+
+    // 推送内容指纹：用于跳过与上次成功推送完全相同的冗余写（节省 KV 每日写入配额）
+    function _payloadHash(obj) {
+        try { return JSON.stringify(obj); } catch (e) { return null; }
+    }
 
     // 计算云端内容指纹：只取会被同步的关键字段，变化才触发重渲染
     function _hashPayload(data) {

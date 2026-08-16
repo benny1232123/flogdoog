@@ -81,7 +81,7 @@
 
     /**
      * 修复 currentA/currentB：当它们为 null 但 history 中有对应人的记录时，
-     * 自动从 history 中取最新的一条恢复。解决云端 current 被清空后无法自动恢复的问题。
+     * 自动从 history 中取时间最新的一条恢复。解决云端 current 被清空后无法自动恢复的问题。
      * @returns {object} 修复后的完整数据（如有修改会自动 save）
      */
     function repairCurrentFromHistory() {
@@ -90,20 +90,23 @@
         if (!history.length) return data;
 
         var changed = false;
-        // 从 history 找最新的 a 和 b 条目
+        // 从 history 找时间最新的 a 和 b 条目（history 数组为插入序，不可直接取首个）
         var latestA = null, latestB = null;
         for (var i = 0; i < history.length; i++) {
             var h = history[i];
-            if (!latestA && h.who === 'a') latestA = h;
-            if (!latestB && h.who === 'b') latestB = h;
-            if (latestA && latestB) break;
+            if (!h || !h.who) continue;
+            if (h.who === 'a') {
+                if (!latestA || (h.time && new Date(h.time).getTime() > new Date(latestA.time).getTime())) latestA = h;
+            } else if (h.who === 'b') {
+                if (!latestB || (h.time && new Date(h.time).getTime() > new Date(latestB.time).getTime())) latestB = h;
+            }
         }
 
-        if (!data.currentA && latestA) {
+        if (!data.currentA || (latestA && data.currentA.time && latestA.time > data.currentA.time)) {
             data.currentA = JSON.parse(JSON.stringify(latestA));
             changed = true;
         }
-        if (!data.currentB && latestB) {
+        if (!data.currentB || (latestB && data.currentB.time && latestB.time > data.currentB.time)) {
             data.currentB = JSON.parse(JSON.stringify(latestB));
             changed = true;
         }
@@ -111,8 +114,8 @@
         if (changed) {
             save(data);
             console.log('[LP.Mood] repairCurrentFromHistory: 从 history 恢复 currentA=' +
-                (data.currentA ? data.currentA.label : 'null') +
-                ' currentB=' + (data.currentB ? data.currentB.label : 'null'));
+                (data.currentA ? data.currentA.label + '@' + (data.currentA.time || '').slice(11, 16) : 'null') +
+                ' currentB=' + (data.currentB ? data.currentB.label + '@' + (data.currentB.time || '').slice(11, 16) : 'null'));
         }
         return data;
     }
