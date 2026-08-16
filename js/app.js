@@ -1984,6 +1984,7 @@
        ========================================================= */
     let currentResCat = ''; // '' = all
     let currentResTag = '';
+    let resViewMode = 'grid'; // 'grid' (网盘) or 'list' (列表)
 
     function renderResources() {
         if (!LP.Resources) return;
@@ -2015,7 +2016,8 @@
         // 资料列表
         renderResList();
 
-        // 搜索 & 新增事件
+        // 搜索 & 新增事件 + 视图切换
+        renderResToolbar();
         bindResEvents();
     }
 
@@ -2060,6 +2062,9 @@
             return new Date(b.date) - new Date(a.date);
         });
 
+        // 设置容器样式类
+        list.className = resViewMode === 'grid' ? 'res-grid' : 'res-list';
+
         if (items.length === 0) {
             list.innerHTML = '<p class="sched-empty">' + (currentResCat || currentResTag ? '没有匹配的资料' : '资料库还是空的，点击「+ 新增」添加第一条') + '</p>';
             return;
@@ -2068,30 +2073,66 @@
         var catMap = {};
         R.CATEGORIES.forEach(function (c) { catMap[c.id] = c; });
 
-        list.innerHTML = items.map(function (r) {
-            var cat = catMap[r.category] || { icon: '📎', label: '其他' };
-            var tagsHtml = (r.tags && r.tags.length)
-                ? '<div class="res-tags">' + r.tags.map(function (t) {
-                    return '<button class="res-tag-chip" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
-                }).join('') + '</div>'
-                : '';
-            var abstractHtml = r.abstract ? '<p class="res-abstract">' + esc(r.abstract) + '</p>' : '';
-            var noteHtml = r.note ? '<p class="res-note">📝 ' + esc(r.note) + '</p>' : '';
-            var urlHtml = r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="res-link">打开链接 ↗</a>' : '';
-            var pinBadge = r.pinned ? '<span class="res-pin-badge" title="已置顶">📌 置顶</span>' : '';
+        if (resViewMode === 'grid') {
+            // ===== 网盘风格：大图标网格 =====
+            list.innerHTML = items.map(function (r) {
+                var cat = catMap[r.category] || { icon: '📎', label: '其他', color: '#999' };
+                var isLink = !!r.url;
+                var fileIcon = isLink ? '🔗' : (r.abstract ? '📄' : (r.note ? '📝' : '📎'));
+                var pinMark = r.pinned ? '<span class="drive-pin">📌</span>' : '';
+                var titleHtml = isLink
+                    ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="drive-title" title="' + esc(r.title) + '">' + esc(r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title) + '</a>'
+                    : '<span class="drive-title" title="' + esc(r.title) + '">' + esc(r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title) + '</span>';
+                var tagsHtml = (r.tags && r.tags.length)
+                    ? '<div class="drive-tags">' + r.tags.slice(0, 3).map(function (t) { return '<span class="drive-tag">' + esc(t) + '</span>'; }).join('') + '</div>'
+                    : '';
 
-            return '<div class="res-card' + (r.pinned ? ' is-pinned' : '') + '" data-id="' + r.id + '">' +
-                '<div class="res-head">' +
-                    '<span class="res-cat-badge">' + cat.icon + ' ' + cat.label + '</span>' +
-                    pinBadge +
-                    '<span class="res-date">' + (r.date ? r.date.slice(0,10) : '') + '</span>' +
-                    '<button class="link-btn res-pin" data-id="' + r.id + '" title="置顶 / 取消置顶">' + (r.pinned ? '📌' : '📍') + '</button>' +
-                    '<button class="link-btn sched-del res-del" data-id="' + r.id + '">✕</button>' +
-                '</div>' +
-                '<h4 class="res-title">' + (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a>' : esc(r.title)) + '</h4>' +
-                abstractHtml + noteHtml + tagsHtml + urlHtml +
-            '</div>';
-        }).join('');
+                return '<div class="drive-card' + (r.pinned ? ' is-pinned' : '') + '" data-id="' + r.id + '">' +
+                    '<div class="drive-icon-wrap">' +
+                        '<span class="drive-icon">' + cat.icon + '</span>' +
+                        pinMark +
+                    '</div>' +
+                    '<div class="drive-body">' +
+                        titleHtml +
+                        '<div class="drive-meta">' +
+                            '<span class="drive-cat">' + cat.label + '</span>' +
+                            '<span class="drive-date">' + (r.date ? r.date.slice(5, 10) : '') + '</span>' +
+                        '</div>' +
+                        tagsHtml +
+                    '</div>' +
+                    '<div class="drive-actions">' +
+                        '<button class="drive-act-btn res-pin" data-id="' + r.id + '" title="置顶">' + (r.pinned ? '📌' : '📍') + '</button>' +
+                        '<button class="drive-act-btn res-del" data-id="' + r.id + '" title="删除">✕</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        } else {
+            // ===== 列表视图（原有卡片风格）=====
+            list.innerHTML = items.map(function (r) {
+                var cat = catMap[r.category] || { icon: '📎', label: '其他' };
+                var tagsHtml = (r.tags && r.tags.length)
+                    ? '<div class="res-tags">' + r.tags.map(function (t) {
+                        return '<button class="res-tag-chip" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+                    }).join('') + '</div>'
+                    : '';
+                var abstractHtml = r.abstract ? '<p class="res-abstract">' + esc(r.abstract) + '</p>' : '';
+                var noteHtml = r.note ? '<p class="res-note">📝 ' + esc(r.note) + '</p>' : '';
+                var urlHtml = r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="res-link">打开链接 ↗</a>' : '';
+                var pinBadge = r.pinned ? '<span class="res-pin-badge" title="已置顶">📌 置顶</span>' : '';
+
+                return '<div class="res-card' + (r.pinned ? ' is-pinned' : '') + '" data-id="' + r.id + '">' +
+                    '<div class="res-head">' +
+                        '<span class="res-cat-badge">' + cat.icon + ' ' + cat.label + '</span>' +
+                        pinBadge +
+                        '<span class="res-date">' + (r.date ? r.date.slice(0,10) : '') + '</span>' +
+                        '<button class="link-btn res-pin" data-id="' + r.id + '" title="置顶 / 取消置顶">' + (r.pinned ? '📌' : '📍') + '</button>' +
+                        '<button class="link-btn sched-del res-del" data-id="' + r.id + '">✕</button>' +
+                    '</div>' +
+                    '<h4 class="res-title">' + (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a>' : esc(r.title)) + '</h4>' +
+                    abstractHtml + noteHtml + tagsHtml + urlHtml +
+                '</div>';
+            }).join('');
+        }
 
         // 标签点击筛选
         $$('.res-tag-chip', list).forEach(function (chip) {
@@ -2120,6 +2161,47 @@
                 toast('已删除');
                 renderResources();
             });
+        });
+    }
+
+    // 网盘风格工具栏：搜索 + 视图切换 + 新增
+    function renderResToolbar() {
+        var toolbar = $('#res-toolbar');
+        if (!toolbar) return;
+        // 只渲染一次框架
+        if (toolbar._rendered) {
+            // 更新视图按钮状态
+            var gridBtn = $('#res-view-grid');
+            var listBtn = $('#res-view-list');
+            if (gridBtn) gridBtn.classList.toggle('is-active', resViewMode === 'grid');
+            if (listBtn) listBtn.classList.toggle('is-active', resViewMode === 'list');
+            return;
+        }
+        toolbar._rendered = true;
+        toolbar.innerHTML =
+            '<div class="res-toolbar-left">' +
+                '<input type="text" id="res-search" class="sched-input" placeholder="🔍 搜索资料…">' +
+            '</div>' +
+            '<div class="res-toolbar-right">' +
+                '<button class="res-view-btn is-active" id="res-view-grid" title="网盘视图" type="button">▦</button>' +
+                '<button class="res-view-btn" id="res-view-list" title="列表视图" type="button">☰</button>' +
+                '<button class="btn-primary btn-sm" id="res-add-btn" type="button">+ 新增</button>' +
+            '</div>';
+
+        // 视图切换
+        $('#res-view-grid').addEventListener('click', function () {
+            resViewMode = 'grid';
+            this.classList.add('is-active');
+            $('#res-view-list').classList.remove('is-active');
+            $('#res-list').className = 'res-grid';
+            renderResList();
+        });
+        $('#res-view-list').addEventListener('click', function () {
+            resViewMode = 'list';
+            this.classList.add('is-active');
+            $('#res-view-grid').classList.remove('is-active');
+            $('#res-list').className = 'res-list';
+            renderResList();
         });
     }
 
@@ -2236,6 +2318,7 @@
             statsEl.innerHTML = '<div class="fp-stat-cards">' +
                 '<div class="fp-stat"><span class="fp-stat-num">' + stats.total + '</span><span class="fp-stat-label">次打卡</span></div>' +
                 '<div class="fp-stat"><span class="fp-stat-num">' + stats.unique + '</span><span class="fp-stat-label">个地方</span></div>' +
+                '<div class="fp-stat"><span class="fp-stat-num">' + stats.cities + '</span><span class="fp-stat-label">个城市</span></div>' +
                 '<div class="fp-stat"><span class="fp-stat-num">' + stats.provinces + '</span><span class="fp-stat-label">省份 / 地区</span></div>' +
             '</div>';
         }
@@ -2259,6 +2342,20 @@
         // 默认日期为今天
         var dateInput = $('#fp-date-input');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+
+        // 城市自动补全（只填充一次）
+        var cityList = $('#fp-city-list');
+        if (cityList && !cityList._filled) {
+            cityList._filled = true;
+            var commonCities = [
+                '北京','上海','广州','深圳','杭州','成都','重庆','武汉','西安','南京',
+                '天津','苏州','长沙','郑州','青岛','大连','宁波','厦门','昆明','三亚',
+                '桂林','丽江','拉萨','乌鲁木齐','哈尔滨','沈阳','长春','合肥','福州','南昌',
+                '贵阳','南宁','海口','呼和浩特','太原','石家庄','兰州','西宁','银川','台北',
+                '香港','澳门','珠海','佛山','东莞','无锡','南通','温州','烟台','威海'
+            ];
+            cityList.innerHTML = commonCities.map(function (c) { return '<option value="' + c + '">'; }).join('');
+        }
 
         // 地图 + 列表
         renderFpMap(FP);
@@ -2338,6 +2435,7 @@
                 var whoTag = p.who === 'a' ? '<span class="sched-who who-a">🐸</span>'
                     : p.who === 'b' ? '<span class="sched-who who-b">🐕</span>' : '';
                 var provTag = p.province ? '<span class="fp-prov-tag">' + esc(p.province) + '</span>' : '';
+                var cityTag = p.city ? '<span class="fp-city-tag">🏙️ ' + esc(p.city) + '</span>' : '';
                 var noteHtml = p.note ? '<p class="fp-note">' + esc(p.note) + '</p>' : '';
                 var provAttr = p.province ? ' data-prov="' + esc(p.province) + '"' : '';
                 return '<div class="fp-card' + (p.province ? ' fp-card-link' : '') + '" data-id="' + p.id + '"' + provAttr + ' style="--fp-delay:' + (idx * 30) + 'ms">' +
@@ -2346,7 +2444,7 @@
                         '<h4 class="fp-name">📍 ' + esc(p.name) + '</h4>' +
                         '<div class="fp-meta">' +
                             '<span class="fp-date">📅 ' + (p.date || '') + '</span>' +
-                            provTag + whoTag +
+                            cityTag + provTag + whoTag +
                             '<button class="link-btn sched-del fp-del" data-id="' + p.id + '">✕</button>' +
                         '</div>' +
                         noteHtml +
@@ -2389,6 +2487,7 @@
             checkinBtn.addEventListener('click', function () {
                 var nameInput = $('#fp-name-input');
                 var dateInput = $('#fp-date-input');
+                var cityInput = $('#fp-city-input');
                 var provSel = $('#fp-province-input');
                 var whoSel = $('#fp-who-input');
                 var noteInput = $('#fp-note-input');
@@ -2396,12 +2495,14 @@
                 if (!name) { toast('写个地名吧'); nameInput.focus(); return; }
                 FP.addPlace({
                     name: name,
+                    city: (cityInput.value || '').trim(),
                     date: dateInput.value || '',
                     province: provSel ? provSel.value : '',
                     who: whoSel ? whoSel.value : '',
                     note: noteInput ? noteInput.value.trim() : ''
                 });
                 nameInput.value = '';
+                if (cityInput) cityInput.value = '';
                 if (noteInput) noteInput.value = '';
                 // 保留省份选择，方便连续在同一地打卡
                 toast('打卡成功 ✓');

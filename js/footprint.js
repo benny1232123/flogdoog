@@ -11,7 +11,7 @@
 
     function getDefaultData() {
         return {
-            // 每条打卡：{ id, name, date, province?, who?, note?, lat?, lng?, createdAt }
+            // 每条打卡：{ id, name, city?, province?, date, who?, note?, lat?, lng?, createdAt }
             places: []
         };
     }
@@ -80,14 +80,17 @@
         var places = load().places;
         var uniqueNames = {};
         var provinces = {};
+        var cities = {};
         places.forEach(function (p) {
             uniqueNames[p.name] = true;
             if (p.province) provinces[p.province] = true;
+            if (p.city) cities[p.city] = true;
         });
         return {
             total: places.length,
             unique: Object.keys(uniqueNames).length,
-            provinces: Object.keys(provinces).length
+            provinces: Object.keys(provinces).length,
+            cities: Object.keys(cities).length
         };
     }
 

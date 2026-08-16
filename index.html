@@ -393,7 +393,7 @@
         <section class="section" id="footprint">
             <div class="sec-head reveal">
                 <h2 class="sec-title">🗺️ 我们的足迹</h2>
-                <p class="sec-sub">去过的地方 · 在地图上点亮每一个省份</p>
+                <p class="sec-sub">去过的地方 · 在地图上点亮每一个城市</p>
             </div>
 
             <!-- 统计 -->
@@ -412,7 +412,10 @@
                     <input type="date" id="fp-date-input" class="sched-type-select">
                 </div>
                 <div class="fp-add-row">
+                    <input type="text" id="fp-city-input" class="sched-input" placeholder="城市（如：杭州、成都）" maxlength="30" list="fp-city-list">
+                    <datalist id="fp-city-list"></datalist>
                     <select id="fp-province-input" class="sched-type-select"><option value="">省份 / 地区…</option></select>
+                </div>
                     <select id="fp-who-input" class="sched-type-select">
                         <option value="">一起 💞</option>
                         <option value="a">阿蛙 🐸</option>
