@@ -568,6 +568,8 @@ window.LP = (function () {
                         }
                     } catch (e) { console.warn('[LP] 云同步拉取失败（将使用本机数据）：', e); }
                 }
+                // 🔧 Mood 修复保险：确保 currentA/currentB 不因云端 null 而丢失
+                try { if (LP.Mood && LP.Mood.repairCurrentFromHistory) LP.Mood.repairCurrentFromHistory(); } catch (_) {}
                 // 启动实时同步：之后本设备每隔几秒拉取云端，对方改动能立即显示
                 if (LP.Sync) LP.Sync.startLiveSync();
             })();

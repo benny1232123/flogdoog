@@ -262,6 +262,13 @@
                         }
                     } catch (e) { console.warn('[LP] 模块同步失败: ' + m.key, e); }
                 });
+                // 🔧 Mood 修复：如果 currentA/currentB 为 null 但 history 有记录，自动从 history 恢复
+                //    解决「云端 current 被清空后，即使有 history 记录也不显示」的问题
+                try {
+                    if (window.LP && LP.Mood && LP.Mood.repairCurrentFromHistory) {
+                        LP.Mood.repairCurrentFromHistory();
+                    }
+                } catch (e) { console.warn('[LP] Mood 修复失败：', e); }
                 // 云端媒体（分键存储）：按 mediaMeta 列表把本机缺失的文件从 /api/sync/media/<id> 拉回本机 IndexedDB
                 try {
                     const n = await pullMedia(data.mediaMeta);
