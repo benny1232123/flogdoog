@@ -475,6 +475,27 @@ window.LP = (function () {
     }
 
     /* ---------------- 启动 ---------------- */
+    // 把站点默认种子内容（config.json 的 timeline/gallery）提升进可同步覆盖层 lp.userData。
+    // 否则这些内容只存在于打包的 config.json，永远推不出去，表现为「时间轴/照片墙在另一台设备看不到」。
+    // 仅在本机覆盖层该字段为空、且 config.json 有内容时补入，绝不覆盖已在云端/本机的真实数据。
+    function seedOverlayFromConfig() {
+        try {
+            const ud = store.get('lp.userData', {}) || {};
+            let changed = false;
+            ['timeline', 'gallery'].forEach(function (k) {
+                const cfg = (state.config && state.config[k]) || null;
+                const hasCfg = cfg && Array.isArray(cfg) && cfg.length;
+                const udVal = ud[k];
+                const udEmpty = !udVal || (Array.isArray(udVal) && udVal.length === 0);
+                if (hasCfg && udEmpty) {
+                    ud[k] = JSON.parse(JSON.stringify(cfg));
+                    changed = true;
+                }
+            });
+            if (changed) store.set('lp.userData', ud);
+        } catch (e) { console.warn('[LP] 覆盖层种子提升失败：', e); }
+    }
+
     async function boot() {
         applyTheme();
         buildPetals();
@@ -515,6 +536,7 @@ window.LP = (function () {
         if (LP.Editor) {
             try { LP.Editor.applyOverlay(state.config); } catch (e) { console.warn('[LP] 应用本地覆盖失败：', e); }
         }
+        seedOverlayFromConfig(); // 把 config 种子（时间轴/照片墙）提升进可同步覆盖层，确保能被推上云
 
         // 立即初始化锁屏（绑定键盘、显示界面），不要等下面的异步工作，
         // 否则在「已配置云同步」或「媒体解析较慢」时，锁屏会先显示却点不了键盘 → 表现为卡死。
@@ -548,6 +570,7 @@ window.LP = (function () {
                             if (remote.data) {
                                 if (LP.Editor) {
                                     LP.Editor.applyOverlay(state.config);
+                                    seedOverlayFromConfig(); // 拉取后再次提升种子，防止云端空值把本地种子覆盖掉
                                     try {
                                         await Promise.race([
                                             LP.Editor.resolveMediaRefs(state.config),

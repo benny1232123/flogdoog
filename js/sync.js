@@ -551,6 +551,20 @@
             _lastHash = hash;
             await pull(data); // 传入已取回的数据，避免重复请求
 
+            // 拉取后重建 state.config 覆盖层并解析媒体引用，否则渲染读到的仍是旧 config，
+            // 时间轴/照片墙/纪念日等覆盖层字段的实时同步不生效
+            if (window.LP && LP.Editor && LP.Editor.applyOverlay && LP.state) {
+                try {
+                    LP.Editor.applyOverlay(LP.state.config);
+                    if (LP.Editor.resolveMediaRefs) {
+                        await Promise.race([
+                            LP.Editor.resolveMediaRefs(LP.state.config),
+                            new Promise(function (_, rej) { setTimeout(function () { rej(new Error('t')); }, 6000); })
+                        ]).catch(function () {});
+                    }
+                } catch (e) { console.warn('[LP] 实时同步覆盖层重建失败：', e); }
+            }
+
             // 节流渲染：避免每 3 秒全量重渲染导致闪烁
             var now = Date.now();
             if (now - _lastRenderAt >= RENDER_THROTTLE_MS) {
