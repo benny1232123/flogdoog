@@ -12,6 +12,10 @@
 }
 .app.is-ready { opacity: 1; }
 
+/* 全局焦点环：键盘可达性 + 人性化反馈 */
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--r-sm); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offset: 1px; }
+
 .section { padding: 92px 0; scroll-margin-top: 76px; }
 .section:first-child { padding-top: 104px; }
 
@@ -38,6 +42,27 @@
     color: var(--ink-3);
     letter-spacing: .08em;
 }
+
+/* 统一空状态：柔和的留白卡片，弱化「无内容」的空白感（人性化） */
+.msg-empty, .period-empty, .mood-empty, .sched-empty, .fp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px auto;
+    max-width: 520px;
+    padding: 34px 24px;
+    text-align: center;
+    font-size: .86rem;
+    line-height: 1.75;
+    letter-spacing: .04em;
+    color: var(--ink-2);
+    background: color-mix(in srgb, var(--cream-2) 55%, transparent);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--r-lg);
+}
+.period-empty, .mood-empty { padding: 22px 20px; }
 
 /* =========================================================
    双人主页 Hero（原项目无此模块，全新构建）
