@@ -629,9 +629,31 @@ window.LP = (function () {
         }
     }
 
+    /* ---------------- 首屏概览条（产品门面：展示一起积累的内容） ---------------- */
+    function renderOverview() {
+        const el = $('#overview');
+        if (!el) return;
+        const len = (k, fb) => {
+            try {
+                const v = store.get(k, fb);
+                return Array.isArray(v) ? v.length : (typeof v === 'number' ? v : fb);
+            } catch (e) { return fb; }
+        };
+        const cfg = state.config || {};
+        const items = [
+            { n: (cfg.anniversaries || []).length, l: '纪念日' },
+            { n: (cfg.gallery || []).length, l: '照片' },
+            { n: len('lp_footprint', 0), l: '足迹' },
+            { n: len('lp_rating', 0), l: '点评' }
+        ];
+        el.innerHTML = items.map(function (it) {
+            return '<div class="overview-item"><span class="ov-num">' + it.n + '</span><span class="ov-label">' + it.l + '</span></div>';
+        }).join('');
+    }
+
     /* ---------------- 对外接口 ---------------- */
     return {
         LS, $, $$, store, esc, pad, parseDate, dayDiff, fmtDate, fmtRelTime,
-        state, toast, observeReveal, lazyImages, startCounter, refreshSite
+        state, toast, observeReveal, lazyImages, startCounter, refreshSite, renderOverview
     };
 })();

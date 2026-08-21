@@ -2826,6 +2826,7 @@
         renderResources();
         renderFootprint();
         renderRoom();
+        if (LP.renderOverview) LP.renderOverview();
     }
 
     // 挂到 LP 上供 core.js 调用

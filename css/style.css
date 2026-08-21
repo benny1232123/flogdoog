@@ -43,6 +43,100 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     letter-spacing: .08em;
 }
 
+/* ===== 信息架构分组头：用「章节」节奏替代功能平铺，强化产品门面感 ===== */
+.group-head {
+    text-align: center;
+    margin: 128px auto 4px;
+    padding: 0 16px;
+}
+.group-head:first-of-type { margin-top: 92px; }
+.group-no {
+    display: block;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(2.6rem, 11vw, 4.4rem);
+    line-height: 1;
+    letter-spacing: .02em;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--rose) 34%, transparent),
+        color-mix(in srgb, var(--rose) 9%, transparent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+.group-title {
+    position: relative;
+    display: inline-block;
+    margin-top: 16px;
+    padding-bottom: 4px;
+    font-family: var(--font-serif);
+    font-size: clamp(1.5rem, 5.4vw, 2.2rem);
+    letter-spacing: .16em;
+    color: var(--ink-1);
+}
+.group-title::after {
+    content: "";
+    position: absolute;
+    left: 50%; bottom: -10px;
+    width: 54px; height: 2px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--rose), transparent);
+}
+.group-desc {
+    margin-top: 30px;
+    font-size: .9rem;
+    letter-spacing: .14em;
+    color: var(--ink-3);
+}
+
+/* ===== 首屏概览条：一起积累的内容，给主页一个「产品仪表盘」门面 ===== */
+.overview {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    margin: 32px auto 0;
+    padding: 16px 6px;
+    max-width: 500px;
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--panel) 72%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    box-shadow: 0 8px 26px rgba(0,0,0,.05);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+.overview-item {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 78px;
+    padding: 4px 8px;
+    text-align: center;
+}
+.overview-item + .overview-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 1px;
+    background: color-mix(in srgb, var(--border) 75%, transparent);
+}
+.ov-num {
+    display: block;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(1.35rem, 5.2vw, 1.75rem);
+    line-height: 1.1;
+    color: var(--rose);
+}
+.ov-label {
+    display: block;
+    margin-top: 5px;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: var(--ink-3);
+}
+
 /* 统一空状态：柔和的留白卡片，弱化「无内容」的空白感（人性化） */
 .msg-empty, .period-empty, .mood-empty, .sched-empty, .fp-empty {
     display: flex;
