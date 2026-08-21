@@ -117,12 +117,23 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 }
 
 .eyebrow {
+    position: relative;
+    display: inline-block;
     font-size: .72rem;
     letter-spacing: .42em;
     text-transform: uppercase;
     color: var(--rose-deep);
-    opacity: .82;
+    opacity: .9;
 }
+.eyebrow::before, .eyebrow::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 22px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rose-soft));
+}
+.eyebrow::before { right: 100%; margin-right: 10px; transform: scaleX(-1); }
+.eyebrow::after { left: 100%; margin-left: 10px; }
 
 /* 双人头像 */
 .couple {
@@ -137,7 +148,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 
 .who-ring {
     position: relative;
-    width: clamp(92px, 26vw, 132px);
+    width: clamp(104px, 30vw, 152px);
     aspect-ratio: 1;
     padding: 4px;
     border-radius: 50%;
@@ -145,6 +156,18 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     box-shadow: var(--shadow-md);
     transition: transform .5s var(--ease-out-back);
 }
+.who-ring::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--rose) 42%, transparent), transparent 70%);
+    opacity: 0;
+    transform: scale(.9);
+    transition: opacity .5s var(--ease), transform .5s var(--ease);
+    z-index: -1;
+}
+.who:hover .who-ring::after { opacity: .7; transform: scale(1.06); }
 .who:hover .who-ring { transform: translateY(-6px) scale(1.04); }
 .who-ring img {
     width: 100%; height: 100%;
@@ -195,26 +218,38 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 .knot-line-r { left: 100%; background: linear-gradient(90deg, var(--rose-soft), transparent); }
 
 .declaration {
-    max-width: 30ch;
+    position: relative;
+    max-width: 32ch;
     margin: 0 auto;
+    padding: 0 8px;
     font-family: var(--font-serif);
-    font-size: clamp(.95rem, 3.4vw, 1.1rem);
-    line-height: 2;
-    letter-spacing: .07em;
-    color: var(--ink-2);
+    font-size: clamp(1.02rem, 3.6vw, 1.22rem);
+    line-height: 2.1;
+    letter-spacing: .08em;
+    color: var(--ink);
 }
 
 /* 恋爱计时器（继承原项目计时逻辑，视觉重做） */
 .counter {
+    position: relative;
+    overflow: hidden;
     margin: 52px auto 0;
     padding: 34px 26px 28px;
     max-width: 460px;
     border-radius: var(--r-xl);
     border: 1px solid var(--line);
-    background: var(--surface);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-solid) 30%, var(--surface)), var(--surface));
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), inset 0 1px 0 color-mix(in srgb, var(--surface-solid) 70%, transparent);
+}
+.counter::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface-solid) 90%, transparent), transparent);
+    opacity: .9;
 }
 .counter-label { font-size: .8rem; letter-spacing: .16em; color: var(--ink-3); }
 
@@ -236,6 +271,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     background-clip: text;
     color: transparent;
     font-variant-numeric: tabular-nums;
+    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--rose) 32%, transparent));
 }
 .counter-unit { font-size: 1rem; color: var(--ink-2); letter-spacing: .1em; }
 

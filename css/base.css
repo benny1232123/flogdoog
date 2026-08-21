@@ -119,10 +119,27 @@ body::before {
     inset: 0;
     z-index: -2;
     background:
-        radial-gradient(58% 42% at 12% 6%,  color-mix(in srgb, var(--rose) 26%, transparent) 0%, transparent 62%),
-        radial-gradient(52% 40% at 88% 14%, color-mix(in srgb, var(--gold) 24%, transparent) 0%, transparent 60%),
-        radial-gradient(60% 48% at 50% 104%, color-mix(in srgb, var(--sage) 18%, transparent) 0%, transparent 64%);
+        radial-gradient(60% 44% at 10% 4%,   color-mix(in srgb, var(--rose) 30%, transparent) 0%, transparent 60%),
+        radial-gradient(54% 42% at 90% 12%,  color-mix(in srgb, var(--gold) 28%, transparent) 0%, transparent 58%),
+        radial-gradient(64% 50% at 50% 106%, color-mix(in srgb, var(--sage) 22%, transparent) 0%, transparent 62%);
     pointer-events: none;
+}
+/* 缓慢漂移的柔光层，给平面背景增加空间纵深 */
+body::after {
+    content: "";
+    position: fixed;
+    inset: -22%;
+    z-index: -3;
+    background: radial-gradient(42% 38% at 50% 50%,
+        color-mix(in srgb, var(--rose-soft) 24%, transparent), transparent 70%);
+    filter: blur(34px);
+    opacity: .55;
+    pointer-events: none;
+    animation: drift 24s var(--ease) infinite alternate;
+}
+@keyframes drift {
+    0%   { transform: translate3d(-6%, -4%, 0) scale(1); }
+    100% { transform: translate3d(8%, 6%, 0) scale(1.16); }
 }
 
 /* ---------- 飘落花瓣 ---------- */
