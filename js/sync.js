@@ -27,9 +27,11 @@
     // 说明：flogdoog.pages.dev 生产域由 git 构建提供、目前未挂函数；主别名 main.* 直接部署带函数，
     // 且函数已开 CORS(*)，跨域可用、手机网络可达（不再依赖被手机网络拦截的 workers.dev）。
     // 注：若日后在 Cloudflare 后台把 KV 绑定配到 Pages 项目，可改回同源 '/api/sync'。
+    // 安全：密钥绝不写进前端代码（本文件会被公开下发）！首次使用时在编辑器「同步密钥」里
+    // 手动输入一次，存本机 localStorage（lp.sync）。新设备都需要各输一次。
     const DEFAULT_SYNC = {
         endpoint: 'https://main.flogdoog.pages.dev/api/sync',
-        key: 'Xzy060112'
+        key: ''
     };
 
     let cfg = store.get(SYNC_KEY, null) || DEFAULT_SYNC;
@@ -64,16 +66,19 @@
 
     function status() { return { endpoint: (cfg && cfg.endpoint) || '', key: (cfg && cfg.key) || '' }; }
 
-    // 是否处于「出厂默认」绑定：端点与密钥都等同于 DEFAULT_SYNC（即「你的」云端）。
-    // 用于界面提示「出厂已绑定云端（你的数据）」。
+    // 是否处于「出厂默认」绑定：端点等同于 DEFAULT_SYNC.endpoint（即「你的」云端）。
+    // 密钥已不再随前端下发，出厂默认不含密钥；「出厂默认」只描述端点，密钥以本机输入为准。
     function isFactoryDefault() {
-        return !!(cfg && cfg.endpoint === DEFAULT_SYNC.endpoint && cfg.key === DEFAULT_SYNC.key);
+        return !!(cfg && cfg.endpoint === DEFAULT_SYNC.endpoint);
     }
 
-    // 恢复出厂绑定：清掉本机自定义的云端配置，重新使用 DEFAULT_SYNC（你的地址+密钥）。
+    // 恢复出厂绑定：端点重置为 DEFAULT_SYNC。密钥属于本机私密配置，已输入过则保留（
+    // 否则「恢复出厂(以云端为基准)」的修复流程会因缺密钥而中断）。
     function resetToFactory() {
+        const keepKey = (cfg && cfg.key) || '';
         store.remove(SYNC_KEY);
-        cfg = { endpoint: DEFAULT_SYNC.endpoint, key: DEFAULT_SYNC.key };
+        cfg = { endpoint: DEFAULT_SYNC.endpoint, key: keepKey };
+        if (keepKey) store.set(SYNC_KEY, cfg);
         return status();
     }
 
@@ -183,6 +188,21 @@
         else if (state === 'error' && detail) t += '：' + detail;
         el.dataset.state = state;
         el.title = t;
+        bindStatusTap(el);
+    }
+
+    // 手机上没有 hover，点一下状态点用 toast 展示详情（桌面同理可点）。
+    // 在脚本加载时立即绑定：未配置密钥时 _setStatus 不会被调用，不能依赖它来挂事件。
+    function bindStatusTap(el) {
+        if (!el || el.dataset.bound) return;
+        el.dataset.bound = '1';
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function () {
+            if (LP.toast) LP.toast(el.title || '云端未配置：在编辑器里填写同步密钥后可用');
+        });
+    }
+    if (typeof document !== 'undefined' && document.getElementById) {
+        bindStatusTap(document.getElementById('sync-status'));
     }
     function _fmtTime(d) { const p = function (n) { return String(n).padStart(2, '0'); }; return p(d.getHours()) + ':' + p(d.getMinutes()); }
 

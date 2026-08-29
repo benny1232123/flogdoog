@@ -22,7 +22,7 @@ window.LP = (function () {
         dark: false,
         system: false,
         reverseTimeline: false,
-        petals: true,
+        petals: false, // 杂志风默认关闭飘落装饰，可在设置里打开
         expiryMinutes: 120
     };
 
@@ -107,6 +107,31 @@ window.LP = (function () {
         store.set(LS.settings, state.settings);
     }
 
+    /* ---------------- 产品化细节：返回顶部 / 断网提示 ---------------- */
+
+    // 返回顶部：滚动超过一屏后浮现（移动端定位在底部 Tab 栏上方，样式见 base.css）
+    function initToTop() {
+        const btn = $('#to-top');
+        if (!btn) return;
+        const toggle = () => {
+            btn.hidden = false;
+            btn.classList.toggle('is-show', window.scrollY > 600);
+        };
+        window.addEventListener('scroll', toggle, { passive: true });
+        btn.addEventListener('click', () => {
+            const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+        });
+        toggle();
+    }
+
+    // 断网/恢复提示：站点数据都在本机，断网只影响云同步，明确告知「改动不会丢」
+    function initNetToast() {
+        if (typeof window === 'undefined' || !window.addEventListener) return;
+        window.addEventListener('offline', () => { if (LP.toast) LP.toast('⚠ 网络已断开，改动会先保存在本机'); });
+        window.addEventListener('online', () => { if (LP.toast) LP.toast('✓ 网络已恢复'); });
+    }
+
     /* ---------------- 飘落花瓣 ---------------- */
     const PETAL_SVG = {
         petal: '<svg viewBox="0 0 20 20"><path d="M10 1c4 4 6 8 6 11a6 6 0 11-12 0c0-3 2-7 6-11z" fill="currentColor"/></svg>',
@@ -166,13 +191,22 @@ window.LP = (function () {
     /* ---------------- 图片懒加载（沿用原项目思路，改为 data-src + 淡入） ---------------- */
     let imgIO = null;
     function lazyImages(scope) {
+        // 加载失败占位：奶油底 + 爱心，避免出现浏览器碎图破坏观感
+        const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
+            '<rect width="400" height="300" fill="#FDEDE6"/>' +
+            '<path d="M200 210s-64-41-64-86a38 38 0 0 1 64-27 38 38 0 0 1 64 27c0 45-64 86-64 86z" fill="#F4B3BE" opacity=".8"/>' +
+            '</svg>');
         const imgs = $$('img[data-src]', scope || document);
         const load = (img) => {
             img.src = img.dataset.src;
             img.removeAttribute('data-src');
             if (img.complete) img.classList.add('is-loaded');
             else img.addEventListener('load', () => img.classList.add('is-loaded'), { once: true });
-            img.addEventListener('error', () => img.classList.add('is-loaded'), { once: true });
+            img.addEventListener('error', () => {
+                img.src = PLACEHOLDER;
+                img.classList.add('is-loaded', 'is-broken');
+            }, { once: true });
         };
         if (!('IntersectionObserver' in window)) { imgs.forEach(load); return; }
         if (!imgIO) {
@@ -499,6 +533,7 @@ window.LP = (function () {
     async function boot() {
         applyTheme();
         buildPetals();
+        initNetToast();
         // 先锁住背景，避免加载期间页面可滚动/可交互
         document.body.classList.add('is-locked');
 
@@ -546,6 +581,7 @@ window.LP = (function () {
             LP.renderAll();
             startCounter();
             initNav();
+            initToTop();
             initSettings();
             const rb = $('#refresh-btn'); if (rb) rb.addEventListener('click', refreshSite);
             $('#app').classList.add('is-ready');

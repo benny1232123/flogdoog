@@ -75,15 +75,22 @@
 
     function getWorkingBase() {
         const o = loadOverlay();
-        // 空对象 {} 视为「无覆盖」，回退到 config 默认值，避免编辑副本被清空
-        if (o && typeof o === 'object' && Object.keys(o).length) return clone(o);
-        return {
+        // 先取 config 默认值打底，再按字段叠加覆盖层——
+        // 覆盖层可能只含部分字段（如仅种子过的 timeline/gallery），缺的字段回退 config，
+        // 避免编辑副本出现 undefined 导致「站点/资料卡」页渲染抛错
+        const base = {
             site: clone(state.config.site),
             couple: clone(state.config.couple),
             anniversaries: clone(state.config.anniversaries || []),
             timeline: clone(state.config.timeline || []),
             gallery: clone(state.config.gallery || [])
         };
+        if (o && typeof o === 'object' && Object.keys(o).length) {
+            Object.keys(base).forEach(function (k) {
+                if (o[k] !== undefined && o[k] !== null) base[k] = clone(o[k]);
+            });
+        }
+        return base;
     }
 
     // 云端拉取后，用最新覆盖层重建编辑器工作副本，避免下次保存把远端改动覆盖掉
@@ -209,7 +216,7 @@
                 ${(LP.Sync && LP.Sync.DEFAULT_SYNC) ? '<button class="btn-mini btn-ghost" data-action="sync-reset" type="button">↺ 使用默认地址</button>' : ''}
                 ${(LP.Sync && LP.Sync.DEFAULT_SYNC) ? '<button class="btn-mini btn-ghost" data-action="sync-factory" type="button">↺ 恢复出厂(以云端为基准)</button>' : ''}
             </div>
-            <p class="ed-tip">出厂即已绑定云端（地址与密钥默认=你的），任意设备第一次打开会自动拉取<strong>你的云端内容</strong>作为基准。任一台改动会自动同步到另一台（解锁时也会自动拉取）。照片/视频仍存本机，不跨设备。若某台设备内容乱了，点「恢复出厂(以云端为基准)」即重置为该设备以云端为准；之前同步卡住则点「使用默认地址」修复。</p>
+            <p class="ed-tip">云端地址出厂即绑定（多设备共用同一份云端数据，任一台改动自动同步到另一台，解锁时也会自动拉取）。<strong>同步密钥出于安全考虑不随站点下发</strong>：每台设备第一次使用时在「同步密钥」输入一次即可（输错会提示「密钥不对」）。照片/视频仍存本机，不跨设备。若某台设备内容乱了，点「恢复出厂(以云端为基准)」即重置为该设备以云端为准；之前同步卡住则点「使用默认地址」修复。</p>
         </div>`;
     }
 
@@ -217,12 +224,16 @@
         return (LP.Sync && LP.Sync.status) ? LP.Sync.status() : { endpoint: '', key: '' };
     }
 
-    // 云同步绑定状态提示：出厂默认 vs 自定义
+    // 云同步绑定状态提示：出厂端点 vs 自定义；密钥是否已在本机输入
     function syncStatusHtml() {
         if (!LP.Sync) return '';
         const factory = LP.Sync.isFactoryDefault ? LP.Sync.isFactoryDefault() : false;
+        const hasKey = !!(syncCfg().key);
+        if (!hasKey) {
+            return '<p class="ed-status">○ 尚未填写同步密钥（同步未生效，请在下方输入）</p>';
+        }
         if (factory) {
-            return '<p class="ed-status ed-status-ok">● 出厂已绑定云端（你的数据为基础）</p>';
+            return '<p class="ed-status ed-status-ok">● 已绑定云端（你的数据为基础）</p>';
         }
         return '<p class="ed-status">○ 自定义同步地址（非出厂默认）</p>';
     }
@@ -473,10 +484,9 @@
                 } catch (e) { if (e && e.message !== 'media-timeout') console.warn('[LP] 恢复出厂媒体解析失败：', e); }
                 if (LP.renderAll) LP.renderAll();
                 if (LP.startCounter) LP.startCounter();
-                // ⑤ 输入框更新为出厂地址 + 提示
-                const d = LP.Sync.DEFAULT_SYNC;
-                const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = d.endpoint;
-                const ky = $('#f-sync-x-key'); if (ky) ky.value = d.key;
+                // ⑤ 输入框更新为出厂地址（密钥为本机私密配置，保留当前值）
+                const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = LP.Sync.DEFAULT_SYNC.endpoint;
+                const ky = $('#f-sync-x-key'); if (ky) ky.value = LP.Sync.status().key;
                 activeTab = 'site'; await renderTab();
                 toast('已恢复出厂：以你的云端数据为基准');
             } catch (e) {
@@ -488,11 +498,11 @@
         }
         if (act === 'sync-reset') {
             if (!LP.Sync || !LP.Sync.DEFAULT_SYNC) { toast('无默认地址'); return; }
-            const d = LP.Sync.DEFAULT_SYNC;
-            LP.Sync.configure(d.endpoint, d.key);
+            // 只重置端点；密钥为本机私密配置，保留不动
+            LP.Sync.configure(LP.Sync.DEFAULT_SYNC.endpoint, syncCfg().key);
             // 直接把输入框改成新地址（无论当前停在哪页都有即时反馈）
-            const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = d.endpoint;
-            const ky = $('#f-sync-x-key'); if (ky) ky.value = d.key;
+            const ep = $('#f-sync-x-endpoint'); if (ep) ep.value = LP.Sync.DEFAULT_SYNC.endpoint;
+            const ky = $('#f-sync-x-key'); if (ky) ky.value = syncCfg().key;
             // 切到站点页并重绘，确保用户当场看到更新后的地址
             activeTab = 'site';
             await renderTab();

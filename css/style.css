@@ -19,31 +19,30 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 .section { padding: 92px 0; scroll-margin-top: 76px; }
 .section:first-child { padding-top: 104px; }
 
-.sec-head { text-align: center; margin-bottom: 48px; }
+.sec-head { text-align: center; margin-bottom: 56px; }
 .sec-title {
     position: relative;
     display: inline-block;
     font-family: var(--font-serif);
-    font-size: clamp(1.5rem, 4.6vw, 2.05rem);
-    letter-spacing: .14em;
+    font-size: clamp(1.7rem, 4.6vw, 2.4rem);
+    letter-spacing: .04em;
 }
 .sec-title::after {
     content: "";
     position: absolute;
-    left: 50%; bottom: -11px;
-    width: 42px; height: 2px;
+    left: 50%; bottom: -14px;
+    width: 26px; height: 2px;
     transform: translateX(-50%);
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, var(--rose), transparent);
+    background: var(--rose);
 }
 .sec-sub {
-    margin-top: 22px;
-    font-size: .87rem;
+    margin-top: 26px;
+    font-size: .8rem;
     color: var(--ink-3);
-    letter-spacing: .08em;
+    letter-spacing: .18em;
 }
 
-/* ===== 信息架构分组头：用「章节」节奏替代功能平铺，强化产品门面感 ===== */
+/* ===== 信息架构分组头：编辑部章节式 —— 巨大浅灰编号 + 衬线标题 + 短强调线 ===== */
 .group-head {
     text-align: center;
     margin: 128px auto 4px;
@@ -57,32 +56,25 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     font-size: clamp(2.6rem, 11vw, 4.4rem);
     line-height: 1;
     letter-spacing: .02em;
-    background: linear-gradient(180deg,
-        color-mix(in srgb, var(--rose) 34%, transparent),
-        color-mix(in srgb, var(--rose) 9%, transparent));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+    color: var(--line-strong);
 }
 .group-title {
     position: relative;
     display: inline-block;
-    margin-top: 16px;
+    margin-top: 18px;
     padding-bottom: 4px;
     font-family: var(--font-serif);
-    font-size: clamp(1.5rem, 5.4vw, 2.2rem);
-    letter-spacing: .16em;
+    font-size: clamp(1.6rem, 5.4vw, 2.3rem);
+    letter-spacing: .06em;
     color: var(--ink-1);
 }
 .group-title::after {
     content: "";
     position: absolute;
-    left: 50%; bottom: -10px;
-    width: 54px; height: 2px;
+    left: 50%; bottom: -12px;
+    width: 26px; height: 2px;
     transform: translateX(-50%);
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, var(--rose), transparent);
+    background: var(--rose);
 }
 .group-desc {
     margin-top: 30px;
@@ -97,15 +89,12 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     flex-wrap: wrap;
     justify-content: center;
     gap: 0;
-    margin: 32px auto 0;
-    padding: 16px 6px;
-    max-width: 500px;
-    border-radius: var(--r-lg);
-    background: color-mix(in srgb, var(--panel) 72%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    box-shadow: 0 8px 26px rgba(0,0,0,.05);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    margin: 36px auto 0;
+    padding: 18px 6px;
+    max-width: 520px;
+    border-radius: var(--r-md);
+    background: var(--surface);
+    border: 1px solid var(--line);
 }
 .overview-item {
     position: relative;
@@ -117,9 +106,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 .overview-item + .overview-item::before {
     content: "";
     position: absolute;
-    left: 0; top: 20%; bottom: 20%;
+    left: 0; top: 22%; bottom: 22%;
     width: 1px;
-    background: color-mix(in srgb, var(--border) 75%, transparent);
+    background: var(--line);
 }
 .ov-num {
     display: block;
@@ -127,7 +116,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     font-weight: 600;
     font-size: clamp(1.35rem, 5.2vw, 1.75rem);
     line-height: 1.1;
-    color: var(--rose);
+    color: var(--ink-1);
+    font-variant-numeric: tabular-nums;
 }
 .ov-label {
     display: block;
@@ -163,31 +153,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
    ========================================================= */
 .hero { position: relative; text-align: center; }
 
-.hero-glow {
-    position: absolute;
-    top: 6%; left: 50%;
-    width: min(560px, 96vw);
-    aspect-ratio: 1;
-    transform: translateX(-50%);
-    background: radial-gradient(circle, color-mix(in srgb, var(--rose) 30%, transparent), transparent 66%);
-    filter: blur(38px);
-    pointer-events: none;
-    z-index: -1;
-    animation: breathe 7s var(--ease) infinite;
-}
-@keyframes breathe {
-    0%, 100% { transform: translateX(-50%) scale(1);    opacity: .82; }
-    50%      { transform: translateX(-50%) scale(1.13); opacity: 1; }
-}
+/* 杂志风：去除 Hero 背景光晕（.hero-glow 保留占位以兼容 HTML） */
+.hero-glow { display: none; }
 
 /* 青蛙 + 小狗 装饰形象（桌面端漂浮于 Hero 顶部两侧，移动端隐藏避免遮挡） */
-.mascots {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    overflow: hidden;
-}
+/* 杂志风：漂浮吉祥物隐藏（HTML 保留） */
+.mascots { display: none; }
+.mascots-bg { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .mascot {
     position: absolute;
     width: clamp(48px, 10vw, 82px);
@@ -244,30 +216,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     position: relative;
     width: clamp(104px, 30vw, 152px);
     aspect-ratio: 1;
-    padding: 4px;
+    padding: 5px;
     border-radius: 50%;
-    background: linear-gradient(140deg, var(--rose-soft), var(--gold), var(--rose));
-    box-shadow: var(--shadow-md);
-    transition: transform .5s var(--ease-out-back);
+    background: var(--surface-solid);
+    border: 1px solid var(--line-strong);
+    transition: transform .5s var(--ease-out-back), border-color .3s;
 }
-.who-ring::after {
-    content: "";
-    position: absolute;
-    inset: -10px;
-    border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in srgb, var(--rose) 42%, transparent), transparent 70%);
-    opacity: .42;
-    transform: scale(.96);
-    transition: opacity .5s var(--ease), transform .5s var(--ease);
-    z-index: -1;
-    animation: ringPulse 3.6s var(--ease) infinite;
-}
-@keyframes ringPulse {
-    0%, 100% { opacity: .34; transform: scale(.94); }
-    50%      { opacity: .55; transform: scale(1.04); }
-}
-.who:hover .who-ring::after { opacity: .8; transform: scale(1.08); animation: none; }
-.who:hover .who-ring { transform: translateY(-6px) scale(1.04); }
+.who:hover .who-ring { border-color: var(--rose-soft); transform: translateY(-4px); }
 .who-ring img {
     width: 100%; height: 100%;
     border-radius: 50%;
@@ -277,10 +232,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 }
 
 /* 左侧头像轻微内倾，右侧对称，形成"相望"感 */
-#who-a .who-ring { transform: rotate(-3deg); }
-#who-b .who-ring { transform: rotate(3deg); }
-#who-a:hover .who-ring { transform: rotate(-3deg) translateY(-6px) scale(1.04); }
-#who-b:hover .who-ring { transform: rotate(3deg) translateY(-6px) scale(1.04); }
+/* 杂志风：头像端正摆正，不再倾斜 */
 
 .who figcaption { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
 .who-name {
@@ -303,7 +255,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     width: clamp(22px, 6vw, 30px);
     height: auto;
     fill: var(--rose);
-    filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--rose) 50%, transparent));
     animation: beat 2.4s var(--ease) infinite;
 }
 .knot-line {
@@ -335,21 +286,12 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     margin: 52px auto 0;
     padding: 34px 26px 28px;
     max-width: 460px;
-    border-radius: var(--r-xl);
+    border-radius: var(--r-lg);
     border: 1px solid var(--line);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-solid) 30%, var(--surface)), var(--surface));
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: var(--shadow-md), inset 0 1px 0 color-mix(in srgb, var(--surface-solid) 70%, transparent);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
-.counter::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface-solid) 90%, transparent), transparent);
-    opacity: .9;
-}
+.counter::before { content: none; }
 .counter-label { font-size: .8rem; letter-spacing: .16em; color: var(--ink-3); }
 
 .counter-main {
@@ -365,12 +307,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     font-weight: 600;
     line-height: 1;
     letter-spacing: .02em;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep) 60%, var(--gold));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--ink-1);
     font-variant-numeric: tabular-nums;
-    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--rose) 32%, transparent));
 }
 .counter-unit { font-size: 1rem; color: var(--ink-2); letter-spacing: .1em; }
 
@@ -404,22 +342,20 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     position: relative;
     padding: 24px 22px;
     overflow: hidden;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-md);
     border: 1px solid var(--line);
     background: var(--surface);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     box-shadow: var(--shadow-sm);
-    transition: transform .45s var(--ease), box-shadow .45s;
+    transition: transform .45s var(--ease), box-shadow .45s, border-color .3s;
 }
-.card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--line-strong); }
 .card::before {
     content: "";
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 3px;
+    height: 2px;
     background: var(--accent, var(--rose));
-    opacity: .85;
+    opacity: .9;
 }
 .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
 .card-avatar {
@@ -459,7 +395,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     letter-spacing: .05em;
     color: var(--ink-2);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--rose) 12%, transparent);
+    background: var(--blush);
 }
 
 .scroll-cue {
@@ -491,8 +427,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     border-radius: var(--r-lg);
     border: 1px solid var(--line);
     background: var(--surface);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     box-shadow: var(--shadow-sm);
     transition: transform .45s var(--ease), box-shadow .45s, border-color .3s;
 }
@@ -504,8 +438,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     place-items: center;
     margin-bottom: 14px;
     color: var(--rose-deep);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--rose) 16%, transparent);
+    border-radius: 10px;
+    background: var(--blush);
 }
 .anniv-icon svg { width: 18px; height: 18px; }
 
@@ -526,8 +460,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 
 /* 今天就是纪念日 */
 .anniv.is-today {
-    border-color: var(--rose);
-    background: linear-gradient(150deg, color-mix(in srgb, var(--rose) 20%, var(--surface-solid)), var(--surface-solid));
+    border-color: var(--rose-soft);
+    background: var(--blush);
 }
 .anniv.is-today .anniv-num { font-size: 1.5rem; }
 .anniv-badge {
@@ -551,9 +485,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     content: "";
     position: absolute;
     top: 0; bottom: 0; left: 50%;
-    width: 2px;
+    width: 1px;
     transform: translateX(-50%);
-    background: linear-gradient(180deg, transparent, var(--line-strong) 8%, var(--line-strong) 92%, transparent);
+    background: var(--line-strong);
 }
 
 .tl-item {
@@ -576,7 +510,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     border-radius: 50%;
     background: var(--rose);
     border: 2.5px solid var(--cream);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--rose) 20%, transparent);
     z-index: 2;
 }
 .tl-item:nth-child(even) .tl-dot { right: auto; left: -6px; }
@@ -586,8 +519,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     border-radius: var(--r-lg);
     border: 1px solid var(--line);
     background: var(--surface);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     box-shadow: var(--shadow-sm);
     transition: transform .45s var(--ease), box-shadow .45s;
 }
@@ -644,8 +575,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     letter-spacing: .12em;
     color: #fff;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--rose-deep) 88%, transparent);
-    backdrop-filter: blur(6px);
+    background: var(--rose-deep);
 }
 
 /* =========================================================
@@ -732,7 +662,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     letter-spacing: .08em;
     color: #fff;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    background: var(--rose);
     box-shadow: 0 3px 10px color-mix(in srgb, var(--rose) 40%, transparent);
     pointer-events: none;
 }
@@ -783,7 +713,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     padding: 12px;
     color: #fff;
     border-radius: 14px;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    background: var(--rose);
     box-shadow: 0 6px 16px color-mix(in srgb, var(--rose) 40%, transparent);
 }
 .uploader-icon svg { width: 100%; height: 100%; }
@@ -853,17 +783,15 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 .composer {
     padding: 20px;
     margin-bottom: 30px;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-md);
     border: 1px solid var(--line);
     background: var(--surface);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
 }
 .composer-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .composer-tip { font-size: .72rem; letter-spacing: .1em; color: var(--ink-3); }
 
-.who-switch { display: flex; gap: 6px; padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--rose) 10%, transparent); }
+.who-switch { display: flex; gap: 6px; padding: 3px; border-radius: 999px; background: var(--blush); }
 .who-opt {
     display: flex;
     align-items: center;
@@ -918,7 +846,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 .mood-btn.is-active {
     color: #fff;
     border-color: transparent;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    background: var(--rose);
 }
 .composer-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .counter-chars { font-size: .7rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
@@ -967,7 +895,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
     border-radius: 18px 4px 18px 18px;
     color: #fff;
     border-color: transparent;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    background: var(--rose);
 }
 
 .msg-foot { display: flex; align-items: center; gap: 12px; margin-top: 7px; font-size: .7rem; color: var(--ink-3); }
@@ -2741,7 +2669,7 @@ body[data-theme="dark"] .china-prov.is-visited:hover { fill: var(--rose-deep); }
     transform: translateX(-50%);
     width: 60%; height: 30px;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(232,137,154,.18), rgba(232,137,154,0));
+    background: none;
 }
 
 /* 地板 */

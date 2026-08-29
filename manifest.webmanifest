@@ -1,0 +1,16 @@
+{
+    "name": "我们的小星球",
+    "short_name": "小星球",
+    "description": "属于我们两个人的小星球 — 恋爱时间轴、照片墙与纪念日记录",
+    "lang": "zh-CN",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#FFF7F3",
+    "theme_color": "#FFF7F3",
+    "icons": [
+        { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+        { "src": "assets/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    ]
+}

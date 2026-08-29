@@ -4,42 +4,44 @@
    原项目仅提供单一 style.css；此处重建为「令牌 + 组件」双层结构
    ========================================================= */
 
-/* ---------- 设计令牌：浅色（温馨奶油玫瑰） ---------- */
+/* ---------- 设计令牌：浅色（暖白纸感 · 编辑部杂志风） ----------
+   原则：大面积留白 + 中性墨色阶梯 + 唯一玫瑰强调色；
+   表面实底、发丝描边、阴影极轻；装饰收敛，让排版做主角。 */
 :root {
-    --cream:        #FFF7F3;
-    --cream-2:      #FDEDE6;
-    --blush:        #FFE6E4;
-    --rose:         #E8899A;
-    --rose-soft:    #F4B3BE;
-    --rose-deep:    #C9687C;
-    --gold:         #E3B183;
-    --sage:         #9DB5A4;
+    --cream:        #FBFAF7;   /* 页面底：暖白纸 */
+    --cream-2:      #F3F1EC;   /* 浅米：分区/嵌套底 */
+    --blush:        #F6EDEA;   /* 强调色淡底（激活态/标签底） */
+    --rose:         #C25E74;   /* 唯一强调色 */
+    --rose-soft:    #E0A9B4;
+    --rose-deep:    #9E4458;
+    --gold:         #C0A175;
+    --sage:         #8CA091;
 
-    --ink:          #4A3B3F;
-    --ink-2:        #7A666B;
-    --ink-3:        #A9959A;
+    --ink:          #211D1E;   /* 主文字：近黑墨 */
+    --ink-2:        #6C6466;   /* 次级 */
+    --ink-3:        #A49C9C;   /* 弱化/标注 */
 
     /* 派生别名：统一被误用的「方言」变量，避免硬编码兜底导致风格分裂 */
     --ink-1:        var(--ink);          /* 主文字（原多处误用 --ink-1 未定义） */
     --border:       var(--line);         /* 描边（原多处误用 --border 未定义） */
     --accent:       var(--rose);         /* 强调色（原 20 处误用未定义） */
-    --ring:         rgba(232, 137, 154, .42); /* 焦点环 */
+    --ring:         rgba(194, 94, 116, .4); /* 焦点环 */
     --panel:        var(--surface-solid);
     --panel-2:      var(--cream-2);
 
-    --surface:      rgba(255, 255, 255, 0.72);
-    --surface-solid:#FFFDFB;
-    --line:         rgba(201, 104, 124, 0.14);
-    --line-strong:  rgba(201, 104, 124, 0.26);
+    --surface:      #FFFFFF;   /* 实底表面：不再依赖透明玻璃 */
+    --surface-solid:#FFFFFF;
+    --line:         #EAE6E0;   /* 发丝线（中性暖灰） */
+    --line-strong:  #D8D2C9;
 
-    --shadow-sm:    0 2px 10px rgba(180, 120, 130, 0.08);
-    --shadow-md:    0 10px 30px rgba(180, 120, 130, 0.12);
-    --shadow-lg:    0 22px 60px rgba(160, 100, 115, 0.18);
+    --shadow-sm:    0 1px 2px rgba(33, 29, 30, .05);
+    --shadow-md:    0 1px 2px rgba(33, 29, 30, .04), 0 12px 32px rgba(33, 29, 30, .06);
+    --shadow-lg:    0 2px 6px rgba(33, 29, 30, .05), 0 24px 64px rgba(33, 29, 30, .1);
 
-    --r-sm: 12px;
-    --r-md: 18px;
-    --r-lg: 26px;
-    --r-xl: 34px;
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 18px;
+    --r-xl: 24px;
 
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
     --ease-out-back: cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -52,36 +54,36 @@
                  "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
 }
 
-/* ---------- 设计令牌：夜间（继承原项目 data-theme 机制） ---------- */
+/* ---------- 设计令牌：夜间（中性石墨 + 玫瑰点缀，同一套杂志骨架） ---------- */
 body[data-theme="dark"] {
-    --cream:        #1C1719;
-    --cream-2:      #241D21;
-    --blush:        #33262C;
-    --rose:         #E094A4;
-    --rose-soft:    #8E5F6C;
-    --rose-deep:    #F0AEBB;
-    --gold:         #D6A97F;
+    --cream:        #131211;
+    --cream-2:      #1B1A19;
+    --blush:        #262023;
+    --rose:         #E39CAC;
+    --rose-soft:    #7A545E;
+    --rose-deep:    #F0B3BE;
+    --gold:         #C9A87C;
     --sage:         #8FA894;
 
-    --ink:          #F1E6E8;
-    --ink-2:        #C3B0B5;
-    --ink-3:        #8F7C82;
+    --ink:          #EFECEA;
+    --ink-2:        #B5AEAC;
+    --ink-3:        #7E7776;
 
     --ink-1:        var(--ink);
     --border:       var(--line);
     --accent:       var(--rose);
-    --ring:         rgba(240, 174, 187, .45);
+    --ring:         rgba(227, 156, 172, .45);
     --panel:        var(--surface-solid);
     --panel-2:      var(--cream-2);
 
-    --surface:      rgba(255, 255, 255, 0.055);
-    --surface-solid:#251E22;
-    --line:         rgba(255, 255, 255, 0.09);
-    --line-strong:  rgba(255, 255, 255, 0.18);
+    --surface:      rgba(255, 255, 255, 0.045);
+    --surface-solid:#1E1D1C;
+    --line:         rgba(255, 255, 255, 0.08);
+    --line-strong:  rgba(255, 255, 255, 0.16);
 
-    --shadow-sm:    0 2px 10px rgba(0, 0, 0, 0.3);
-    --shadow-md:    0 10px 30px rgba(0, 0, 0, 0.38);
-    --shadow-lg:    0 22px 60px rgba(0, 0, 0, 0.5);
+    --shadow-sm:    0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-md:    0 1px 2px rgba(0, 0, 0, .35), 0 12px 32px rgba(0, 0, 0, .35);
+    --shadow-lg:    0 2px 6px rgba(0, 0, 0, .4), 0 24px 64px rgba(0, 0, 0, .45);
 }
 
 /* ---------- 重置 ---------- */
@@ -112,35 +114,7 @@ p { margin: 0; }
 
 ::selection { background: var(--rose-soft); color: #fff; }
 
-/* 主背景氛围：柔和的双色光斑 */
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -2;
-    background:
-        radial-gradient(60% 44% at 10% 4%,   color-mix(in srgb, var(--rose) 30%, transparent) 0%, transparent 60%),
-        radial-gradient(54% 42% at 90% 12%,  color-mix(in srgb, var(--gold) 28%, transparent) 0%, transparent 58%),
-        radial-gradient(64% 50% at 50% 106%, color-mix(in srgb, var(--sage) 22%, transparent) 0%, transparent 62%);
-    pointer-events: none;
-}
-/* 缓慢漂移的柔光层，给平面背景增加空间纵深 */
-body::after {
-    content: "";
-    position: fixed;
-    inset: -22%;
-    z-index: -3;
-    background: radial-gradient(42% 38% at 50% 50%,
-        color-mix(in srgb, var(--rose-soft) 24%, transparent), transparent 70%);
-    filter: blur(34px);
-    opacity: .55;
-    pointer-events: none;
-    animation: drift 24s var(--ease) infinite alternate;
-}
-@keyframes drift {
-    0%   { transform: translate3d(-6%, -4%, 0) scale(1); }
-    100% { transform: translate3d(8%, 6%, 0) scale(1.16); }
-}
+/* 主背景氛围：杂志风为纯平面纸底，不再叠加光斑（body::before/::after 留空以省重绘） */
 
 /* ---------- 飘落花瓣 ---------- */
 .petals { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
@@ -172,9 +146,7 @@ body::after {
     display: grid;
     place-items: center;
     padding: 24px;
-    background:
-        radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--rose) 32%, transparent), transparent 70%),
-        var(--cream);
+    background: var(--cream);
     transition: opacity .6s var(--ease), visibility .6s;
 }
 .lock-screen.is-open { opacity: 0; visibility: hidden; }
@@ -185,7 +157,6 @@ body::after {
     width: 52px; height: 48px;
     margin: 0 auto 18px;
     fill: var(--rose);
-    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--rose) 45%, transparent));
     animation: beat 1.9s var(--ease) infinite;
 }
 @keyframes beat {
@@ -310,7 +281,7 @@ body::after {
     transition: color .25s, background .25s;
 }
 .nav-link:hover { color: var(--ink); background: var(--surface); }
-.nav-link.is-active { color: var(--rose-deep); background: color-mix(in srgb, var(--rose) 15%, transparent); }
+.nav-link.is-active { color: var(--rose-deep); background: var(--blush); }
 
 .icon-btn {
     width: 38px; height: 38px;
@@ -376,11 +347,10 @@ body::after {
     letter-spacing: .06em;
     color: #fff;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--rose) 42%, transparent);
-    transition: transform .22s var(--ease-out-back), box-shadow .25s, opacity .2s;
+    background: var(--rose);
+    transition: transform .22s var(--ease-out-back), background .2s, opacity .2s;
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 26px color-mix(in srgb, var(--rose) 52%, transparent); }
+.btn-primary:hover { background: var(--rose-deep); transform: translateY(-1px); }
 .btn-primary:active { transform: scale(.96); }
 .btn-primary:disabled { opacity: .45; box-shadow: none; transform: none; cursor: default; }
 
@@ -414,7 +384,7 @@ body::after {
     box-shadow: 0 2px 6px rgba(0,0,0,.18);
     transition: transform .3s var(--ease-out-back);
 }
-.switch input:checked + .slider { background: linear-gradient(135deg, var(--rose), var(--rose-deep)); }
+.switch input:checked + .slider { background: var(--rose); }
 .switch input:checked + .slider::before { transform: translateX(19px); }
 
 .toast {
@@ -447,4 +417,54 @@ body::after {
     * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     .reveal { opacity: 1; transform: none; }
     html { scroll-behavior: auto; }
+}
+
+/* =========================================================
+   产品化细节：页面滚动条主题化 / 返回顶部
+   ========================================================= */
+
+/* 桌面端滚动条：跟随玫瑰色体系，替代浏览器默认灰条 */
+html { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: padding-box; }
+
+/* 返回顶部：玻璃质感圆钮，移动端避开底部 Tab 栏 */
+.to-top {
+    position: fixed;
+    right: 22px;
+    bottom: 26px;
+    z-index: 92;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--rose-deep);
+    background: var(--surface);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(14px);
+    pointer-events: none;
+    transition: opacity .3s, transform .3s var(--ease), color .2s, border-color .2s;
+}
+.to-top.is-show { opacity: 1; transform: none; pointer-events: auto; }
+.to-top:hover { color: var(--rose); border-color: var(--rose-soft); transform: translateY(-2px); }
+.to-top:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+@media (max-width: 768px) {
+    .to-top { right: 16px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .to-top { transition: opacity .3s; transform: none; }
 }
