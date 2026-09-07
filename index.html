@@ -15,8 +15,8 @@
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-title" content="小星球">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💗</text></svg>">
-    <link rel="stylesheet" href="css/base.css?v=12">
-    <link rel="stylesheet" href="css/style.css?v=12">
+    <link rel="stylesheet" href="css/base.css?v=13">
+    <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 
 <body data-theme="light">
@@ -441,25 +441,42 @@
             </div>
 
             <!-- 快捷打卡 -->
-            <div class="fp-add reveal">
-                <div class="fp-add-row">
-                    <input type="text" id="fp-name-input" class="sched-input" placeholder="地名 / 店名 / 景点…" maxlength="50">
-                    <input type="date" id="fp-date-input" class="sched-type-select">
+            <div class="fp-card reveal">
+                <div class="fp-card-head">
+                    <span class="fp-card-title">📍 打个卡</span>
+                    <span class="fp-card-tip">记下这一站的小事</span>
                 </div>
-                <div class="fp-add-row">
-                    <input type="text" id="fp-city-input" class="sched-input" placeholder="城市（如：杭州、成都）" maxlength="30" list="fp-city-list">
-                    <datalist id="fp-city-list"></datalist>
-                    <select id="fp-province-input" class="sched-type-select"><option value="">省份 / 地区…</option></select>
-                </div>
-                    <select id="fp-who-input" class="sched-type-select">
-                        <option value="">一起 💞</option>
-                        <option value="a">阿蛙 🐸</option>
-                        <option value="b">阿狗 🐕</option>
-                    </select>
-                </div>
-                <div class="fp-add-row">
-                    <input type="text" id="fp-note-input" class="sched-input" placeholder="备注（可选）：和谁、吃了啥、心情…" maxlength="80">
-                    <button class="btn-primary" id="fp-checkin-btn" type="button">📍 打卡</button>
+                <div class="fp-grid">
+                    <div class="field field-span2">
+                        <label class="f-label" for="fp-name-input">地名 / 店名 / 景点</label>
+                        <input type="text" id="fp-name-input" class="sched-input" placeholder="比如：西湖、巷口那家奶茶店…" maxlength="50">
+                    </div>
+                    <div class="field">
+                        <label class="f-label" for="fp-city-input">城市</label>
+                        <input type="text" id="fp-city-input" class="sched-input" placeholder="杭州、成都…" maxlength="30" list="fp-city-list">
+                        <datalist id="fp-city-list"></datalist>
+                    </div>
+                    <div class="field">
+                        <label class="f-label" for="fp-province-input">省份 / 地区</label>
+                        <select id="fp-province-input" class="sched-type-select"><option value="">选择省份…</option></select>
+                    </div>
+                    <div class="field">
+                        <label class="f-label" for="fp-date-input">日期</label>
+                        <input type="date" id="fp-date-input" class="sched-type-select">
+                    </div>
+                    <div class="field">
+                        <label class="f-label" for="fp-who-input">和谁</label>
+                        <select id="fp-who-input" class="sched-type-select">
+                            <option value="">一起 💞</option>
+                            <option value="a">阿蛙 🐸</option>
+                            <option value="b">阿狗 🐕</option>
+                        </select>
+                    </div>
+                    <div class="field field-span2">
+                        <label class="f-label" for="fp-note-input">备注 <i>（可选）</i></label>
+                        <input type="text" id="fp-note-input" class="sched-input" placeholder="和谁、吃了啥、心情…" maxlength="80">
+                    </div>
+                    <button class="btn-primary fp-checkin" id="fp-checkin-btn" type="button">📍 打卡</button>
                 </div>
             </div>
 
@@ -467,7 +484,7 @@
             <div class="fp-filter-bar" id="fp-filter-bar"></div>
 
             <!-- 搜索 -->
-            <div class="res-toolbar reveal" style="margin-bottom:12px;">
+            <div class="fp-search reveal">
                 <input type="text" id="fp-search" class="sched-input" placeholder="搜索足迹…">
             </div>
 
@@ -694,28 +711,28 @@
         </svg>
     </button>
 
-    <script src="js/media.js?v=12"></script>
-    <script src="js/core.js?v=12"></script>
-    <script src="js/sync.js?v=12"></script>
-    <script src="js/period.js?v=12"></script>
-    <script src="js/mood.js?v=12"></script>
-    <script src="js/schedule.js?v=12"></script>
-    <script src="js/rating.js?v=12"></script>
-    <script src="js/resources.js?v=12"></script>
-    <script src="js/footprint.js?v=12"></script>
-    <script src="js/china-map.js?v=12"></script>
-    <script src="js/room.js?v=12"></script>
-    <script src="js/views/shared.js?v=12"></script>
-    <script src="js/views/messages-view.js?v=12"></script>
-    <script src="js/views/period-view.js?v=12"></script>
-    <script src="js/views/mood-view.js?v=12"></script>
-    <script src="js/views/schedule-view.js?v=12"></script>
-    <script src="js/views/rating-view.js?v=12"></script>
-    <script src="js/views/resources-view.js?v=12"></script>
-    <script src="js/views/footprint-view.js?v=12"></script>
-    <script src="js/views/room-view.js?v=12"></script>
-    <script src="js/app.js?v=12"></script>
-    <script src="js/editor.js?v=12"></script>
+    <script src="js/media.js?v=13"></script>
+    <script src="js/core.js?v=13"></script>
+    <script src="js/sync.js?v=13"></script>
+    <script src="js/period.js?v=13"></script>
+    <script src="js/mood.js?v=13"></script>
+    <script src="js/schedule.js?v=13"></script>
+    <script src="js/rating.js?v=13"></script>
+    <script src="js/resources.js?v=13"></script>
+    <script src="js/footprint.js?v=13"></script>
+    <script src="js/china-map.js?v=13"></script>
+    <script src="js/room.js?v=13"></script>
+    <script src="js/views/shared.js?v=13"></script>
+    <script src="js/views/messages-view.js?v=13"></script>
+    <script src="js/views/period-view.js?v=13"></script>
+    <script src="js/views/mood-view.js?v=13"></script>
+    <script src="js/views/schedule-view.js?v=13"></script>
+    <script src="js/views/rating-view.js?v=13"></script>
+    <script src="js/views/resources-view.js?v=13"></script>
+    <script src="js/views/footprint-view.js?v=13"></script>
+    <script src="js/views/room-view.js?v=13"></script>
+    <script src="js/app.js?v=13"></script>
+    <script src="js/editor.js?v=13"></script>
     <script>
         // 注册 Service Worker，使站点可「安装到主屏幕」并支持离线
         if ('serviceWorker' in navigator) {
