@@ -536,6 +536,10 @@
         try {
             return JSON.stringify({
                 o: data.site,
+                c: data.couple,
+                an: data.anniversaries,
+                tl: data.timeline,
+                g: data.gallery,
                 m: data.messages,
                 mdel: data.msgDelIds,
                 r: data.room,

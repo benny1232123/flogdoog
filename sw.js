@@ -42,6 +42,10 @@ self.addEventListener('fetch', (event) => {
     // 跨域（云同步等）：直接透传，不缓存，避免污染私密同步链路
     if (url.origin !== self.location.origin) return;
 
+    // 同步 API（/api/sync 及其媒体子路由）：绝不缓存，直接走网络。
+    // 否则实时同步轮询会被 SW 返回旧缓存，导致对端改动看不到、同步形同虚设。
+    if (url.pathname.indexOf('/api/') === 0) return;
+
     // 导航（打开页面）：network-first，离线回退缓存的 index.html
     if (req.mode === 'navigate') {
         event.respondWith(
