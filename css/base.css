@@ -8,8 +8,8 @@
    原则：大面积留白 + 中性墨色阶梯 + 唯一玫瑰强调色；
    表面实底、发丝描边、阴影极轻；装饰收敛，让排版做主角。 */
 :root {
-    --cream:        #FBFAF7;   /* 页面底：暖白纸 */
-    --cream-2:      #F3F1EC;   /* 浅米：分区/嵌套底 */
+    --cream:        #F7F8FA;   /* 页面底：中性浅灰画布（小程序式） */
+    --cream-2:      #F2F3F6;   /* 浅灰：分区/嵌入输入底 */
     --blush:        #F6EDEA;   /* 强调色淡底（激活态/标签底） */
     --rose:         #C25E74;   /* 唯一强调色 */
     --rose-soft:    #E0A9B4;
@@ -17,9 +17,9 @@
     --gold:         #C0A175;
     --sage:         #8CA091;
 
-    --ink:          #211D1E;   /* 主文字：近黑墨 */
-    --ink-2:        #6C6466;   /* 次级 */
-    --ink-3:        #A49C9C;   /* 弱化/标注 */
+    --ink:          #1A1C1F;   /* 主文字：近黑墨 */
+    --ink-2:        #6B7076;   /* 次级 */
+    --ink-3:        #A2A7AE;   /* 弱化/标注 */
 
     /* 派生别名：统一被误用的「方言」变量，避免硬编码兜底导致风格分裂 */
     --ink-1:        var(--ink);          /* 主文字（原多处误用 --ink-1 未定义） */
@@ -31,33 +31,36 @@
 
     --surface:      #FFFFFF;   /* 实底表面：不再依赖透明玻璃 */
     --surface-solid:#FFFFFF;
-    --line:         #EAE6E0;   /* 发丝线（中性暖灰） */
-    --line-strong:  #D8D2C9;
+    --line:         #ECECEF;   /* 发丝线（中性灰） */
+    --line-strong:  #DFE1E5;
 
-    --shadow-sm:    0 1px 2px rgba(33, 29, 30, .05);
-    --shadow-md:    0 1px 2px rgba(33, 29, 30, .04), 0 12px 32px rgba(33, 29, 30, .06);
-    --shadow-lg:    0 2px 6px rgba(33, 29, 30, .05), 0 24px 64px rgba(33, 29, 30, .1);
+    --shadow-sm:    0 1px 2px rgba(20, 22, 26, .05);
+    --shadow-md:    0 1px 2px rgba(20, 22, 26, .04), 0 10px 28px rgba(20, 22, 26, .06);
+    --shadow-lg:    0 2px 6px rgba(20, 22, 26, .05), 0 20px 56px rgba(20, 22, 26, .1);
 
     --r-sm: 8px;
     --r-md: 12px;
-    --r-lg: 18px;
-    --r-xl: 24px;
+    --r-lg: 16px;
+    --r-xl: 22px;
 
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
     --ease-out-back: cubic-bezier(0.34, 1.4, 0.64, 1);
 
-    --maxw: 1080px;
-    --tabbar-h: 62px;
+    --maxw: 640px;   /* 移动端优先：内容列收窄，桌面居中呈现 */
+    --tabbar-h: 58px;
 
+    /* 现代无衬线标题/正文（移动端系统字体优先） */
+    --font-head: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei",
+                 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-serif: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif SC", Georgia, serif;
-    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
-                 "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC",
+                 "MiSans", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
 }
 
-/* ---------- 设计令牌：夜间（中性石墨 + 玫瑰点缀，同一套杂志骨架） ---------- */
+/* ---------- 设计令牌：夜间（中性石墨 + 玫瑰点缀，同一套移动骨架） ---------- */
 body[data-theme="dark"] {
-    --cream:        #131211;
-    --cream-2:      #1B1A19;
+    --cream:        #101114;
+    --cream-2:      #1A1C1F;
     --blush:        #262023;
     --rose:         #E39CAC;
     --rose-soft:    #7A545E;
@@ -65,9 +68,9 @@ body[data-theme="dark"] {
     --gold:         #C9A87C;
     --sage:         #8FA894;
 
-    --ink:          #EFECEA;
-    --ink-2:        #B5AEAC;
-    --ink-3:        #7E7776;
+    --ink:          #ECEDEF;
+    --ink-2:        #ADB2B8;
+    --ink-3:        #7A7F86;
 
     --ink-1:        var(--ink);
     --border:       var(--line);
@@ -77,7 +80,7 @@ body[data-theme="dark"] {
     --panel-2:      var(--cream-2);
 
     --surface:      rgba(255, 255, 255, 0.045);
-    --surface-solid:#1E1D1C;
+    --surface-solid:#1B1D20;
     --line:         rgba(255, 255, 255, 0.08);
     --line-strong:  rgba(255, 255, 255, 0.16);
 
@@ -264,9 +267,10 @@ p { margin: 0; }
 .brand { display: flex; align-items: center; gap: 9px; margin-right: auto; }
 .brand-mark { width: 20px; height: 18px; fill: var(--rose); flex: none; }
 .brand-text {
-    font-family: var(--font-serif);
-    font-size: 1.02rem;
-    letter-spacing: .1em;
+    font-family: var(--font-head);
+    font-size: .98rem;
+    font-weight: 700;
+    letter-spacing: .04em;
     white-space: nowrap;
 }
 
@@ -342,8 +346,8 @@ p { margin: 0; }
    通用：按钮 / 开关 / Toast / 入场动画
    ========================================================= */
 .btn-primary {
-    padding: 9px 22px;
-    font-size: .85rem;
+    padding: 11px 24px;
+    font-size: .88rem;
     letter-spacing: .06em;
     color: #fff;
     border-radius: 999px;
