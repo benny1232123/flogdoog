@@ -12,9 +12,11 @@
     <meta name="description" content="属于我们两个人的小星球 — 恋爱时间轴、照片墙与纪念日记录">
     <title>我们的小星球</title>
     <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="小星球">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💗</text></svg>">
-    <link rel="stylesheet" href="css/base.css?v=10">
-    <link rel="stylesheet" href="css/style.css?v=10">
+    <link rel="stylesheet" href="css/base.css?v=11">
+    <link rel="stylesheet" href="css/style.css?v=11">
 </head>
 
 <body data-theme="light">
@@ -692,27 +694,37 @@
         </svg>
     </button>
 
-    <script src="js/media.js?v=10"></script>
-    <script src="js/core.js?v=10"></script>
-    <script src="js/sync.js?v=10"></script>
-    <script src="js/period.js?v=10"></script>
-    <script src="js/mood.js?v=10"></script>
-    <script src="js/schedule.js?v=10"></script>
-    <script src="js/rating.js?v=10"></script>
-    <script src="js/resources.js?v=10"></script>
-    <script src="js/footprint.js?v=10"></script>
-    <script src="js/china-map.js?v=10"></script>
-    <script src="js/room.js?v=10"></script>
-    <script src="js/views/shared.js?v=10"></script>
-    <script src="js/views/messages-view.js?v=10"></script>
-    <script src="js/views/period-view.js?v=10"></script>
-    <script src="js/views/mood-view.js?v=10"></script>
-    <script src="js/views/schedule-view.js?v=10"></script>
-    <script src="js/views/rating-view.js?v=10"></script>
-    <script src="js/views/resources-view.js?v=10"></script>
-    <script src="js/views/footprint-view.js?v=10"></script>
-    <script src="js/views/room-view.js?v=10"></script>
-    <script src="js/app.js?v=10"></script>
-    <script src="js/editor.js?v=10"></script>
+    <script src="js/media.js?v=11"></script>
+    <script src="js/core.js?v=11"></script>
+    <script src="js/sync.js?v=11"></script>
+    <script src="js/period.js?v=11"></script>
+    <script src="js/mood.js?v=11"></script>
+    <script src="js/schedule.js?v=11"></script>
+    <script src="js/rating.js?v=11"></script>
+    <script src="js/resources.js?v=11"></script>
+    <script src="js/footprint.js?v=11"></script>
+    <script src="js/china-map.js?v=11"></script>
+    <script src="js/room.js?v=11"></script>
+    <script src="js/views/shared.js?v=11"></script>
+    <script src="js/views/messages-view.js?v=11"></script>
+    <script src="js/views/period-view.js?v=11"></script>
+    <script src="js/views/mood-view.js?v=11"></script>
+    <script src="js/views/schedule-view.js?v=11"></script>
+    <script src="js/views/rating-view.js?v=11"></script>
+    <script src="js/views/resources-view.js?v=11"></script>
+    <script src="js/views/footprint-view.js?v=11"></script>
+    <script src="js/views/room-view.js?v=11"></script>
+    <script src="js/app.js?v=11"></script>
+    <script src="js/editor.js?v=11"></script>
+    <script>
+        // 注册 Service Worker，使站点可「安装到主屏幕」并支持离线
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function (e) {
+                    console.warn('[SW] 注册失败：', e);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
