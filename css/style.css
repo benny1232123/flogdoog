@@ -1266,18 +1266,14 @@ textarea.ed-input { resize: vertical; line-height: 1.6; }
     .wall { columns: 3; }
 }
 
-/* color-mix 不受支持时的降级（旧内核浏览器） */
+/* color-mix 不受支持时的降级（旧内核浏览器 / 微信 X5）
+   顶/底栏与灯箱遮罩已改为「实底兜底 + @supports 升级毛玻璃」，此处仅补其余彩色降级 */
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
-    .topbar { background: rgba(255, 247, 243, .92); }
-    body[data-theme="dark"] .topbar { background: rgba(28, 23, 25, .92); }
-    .tabbar { background: rgba(255, 247, 243, .96); }
-    body[data-theme="dark"] .tabbar { background: rgba(28, 23, 25, .96); }
     .nav-link.is-active { background: rgba(232, 137, 154, .16); }
     .chip, .who-switch { background: rgba(232, 137, 154, .12); }
     .anniv-icon { background: rgba(232, 137, 154, .16); }
-    .lightbox { background: rgba(40, 25, 30, .94); }
-    .toast { background: #4A3B3F; }
     .anniv.is-today { background: var(--surface-solid); }
+    .toast { background: #4A3B3F; }
 }
 
 /* 顶栏同步状态指示点 */

@@ -10,6 +10,7 @@
 :root {
     --cream:        #F7F8FA;   /* 页面底：中性浅灰画布（小程序式） */
     --cream-2:      #F2F3F6;   /* 浅灰：分区/嵌入输入底 */
+    --nav-solid:    #F7F8FA;   /* 顶/底栏实底兜底（X5 不支持毛玻璃时退化为此） */
     --blush:        #F6EDEA;   /* 强调色淡底（激活态/标签底） */
     --rose:         #C25E74;   /* 唯一强调色 */
     --rose-soft:    #E0A9B4;
@@ -111,6 +112,11 @@ img { max-width: 100%; display: block; }
 svg { width: 100%; height: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+/* 去掉移动端点击时的灰色高亮块（微信/安卓 WebView 尤为明显） */
+a, button, input, textarea, select,
+.tab, .key, .nav-link, .icon-btn, .to-top, .btn-primary, .btn-ghost {
+    -webkit-tap-highlight-color: transparent;
+}
 textarea, input { font: inherit; color: inherit; }
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: .02em; }
 p { margin: 0; }

@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=0">
+    <!-- 微信 X5 / 旧安卓 WebView 下 100vh 会算错（含地址栏高度），用 JS 写入真实可视高度兜底 -->
+    <script>
+        (function () {
+            function setVH() {
+                document.documentElement.style.setProperty('--app-vh', (window.innerHeight * 0.01) + 'px');
+            }
+            setVH();
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', setVH);
+        })();
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,8 +26,8 @@
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-title" content="小星球">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💗</text></svg>">
-    <link rel="stylesheet" href="css/base.css?v=14">
-    <link rel="stylesheet" href="css/style.css?v=14">
+    <link rel="stylesheet" href="css/base.css?v=15">
+    <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 
 <body data-theme="light">
