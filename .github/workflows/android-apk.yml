@@ -21,6 +21,25 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Restore or generate stable debug keystore
+        working-directory: android/app
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass flogdoog2026 -keypass flogdoog2026 \
+              -alias flogdoog -keyalg RSA -keysize 2048 -validity 10950 \
+              -dname "CN=Flogdoog Debug, OU=Flogdoog, O=Flogdoog, L=Web, ST=Web, C=CN"
+          fi
+
+      - name: Upload keystore (only when newly generated)
+        if: hashFiles('android/app/debug.keystore') == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-keystore
+          path: android/app/debug.keystore
+          if-no-files-found: error
+
       - name: Build debug APK
         working-directory: android
         run: gradle assembleDebug --no-daemon
