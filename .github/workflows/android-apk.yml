@@ -32,8 +32,7 @@ jobs:
               -dname "CN=Flogdoog Debug, OU=Flogdoog, O=Flogdoog, L=Web, ST=Web, C=CN"
           fi
 
-      - name: Upload keystore (only when newly generated)
-        if: hashFiles('android/app/debug.keystore') == ''
+      - name: Upload keystore (backup)
         uses: actions/upload-artifact@v4
         with:
           name: debug-keystore
