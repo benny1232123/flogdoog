@@ -14,6 +14,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -71,6 +72,16 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+        // UA 加标记：站点据此显示「检查 App 更新」入口
+        s.setUserAgentString(s.getUserAgentString() + " FlogdoogApp/1.4");
+
+        // 站点 JS 可调用 LPApp.checkUpdate() 手动触发检查
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void checkUpdate() {
+                new Thread(() -> checkForUpdate(true), "apk-check-manual").start();
+            }
+        }, "LPApp");
 
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -136,54 +147,89 @@ public class MainActivity extends Activity {
         }
 
         // 应用内更新：延迟 2.5s（让首屏先加载），后台检查云端版本
+        lastAutoCheckAt = System.currentTimeMillis();
         new Thread(() -> {
             try { Thread.sleep(2500); } catch (InterruptedException ignored) { }
-            checkForUpdate();
+            checkForUpdate(false);
         }).start();
     }
 
     /* ============ 应用内更新 ============ */
 
-    /** 启动后检查 /api/app/latest，云端 versionCode 更大则弹窗引导升级。任何异常静默跳过。 */
-    private void checkForUpdate() {
+    private long lastAutoCheckAt = 0L;
+    private boolean updateDialogShowing = false;
+
+    /** 把更新检查过程写进页面 window.__LPLOG，?debug=1 面板可见、可复制。 */
+    private void appLog(String msg) {
+        final String safe = msg.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ");
+        runOnUiThread(() -> {
+            if (web != null) web.evaluateJavascript(
+                    "window.__LPLOG=window.__LPLOG||[];window.__LPLOG.push('[app] " + safe + "');", null);
+        });
+    }
+
+    private void toastUi(String msg) {
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show());
+    }
+
+    /** 检查 /api/app/latest；force=true 时无论结果如何都给出提示（手动检查）。 */
+    private void checkForUpdate(final boolean force) {
         try {
+            appLog("检查更新：请求 latest");
             HttpURLConnection conn = openGet(UPDATE_META_URL, 8000);
-            if (conn.getResponseCode() != 200) { conn.disconnect(); return; }
+            int code = conn.getResponseCode();
+            appLog("检查更新：HTTP " + code);
+            if (code != 200) {
+                conn.disconnect();
+                if (force) toastUi("检查失败（HTTP " + code + "）");
+                return;
+            }
             JSONObject meta = new JSONObject(readAll(conn.getInputStream()));
             conn.disconnect();
             int remote = meta.optInt("versionCode", 0);
-            if (remote <= installedVersionCode()) return;
+            int local = installedVersionCode();
+            appLog("检查更新：云端 v" + remote + " / 本机 v" + local);
+            if (remote <= local) {
+                if (force) toastUi("已是最新版本 " + meta.optString("versionName", String.valueOf(local)));
+                return;
+            }
 
             final String name = meta.optString("versionName", String.valueOf(remote));
             final String notes = meta.optString("notes", "修复了一些问题，体验更顺滑");
+            if (updateDialogShowing) return;
+            updateDialogShowing = true;
             runOnUiThread(() -> new AlertDialog.Builder(MainActivity.this)
                     .setTitle("发现新版本 " + name)
                     .setMessage(notes)
                     .setCancelable(true)
+                    .setOnDismissListener((DialogInterface d) -> updateDialogShowing = false)
                     .setPositiveButton("立即更新", (DialogInterface d, int w) ->
-                            new Thread(() -> downloadAndInstall(remote), "apk-download").start())
+                            new Thread(() -> downloadAndInstall(), "apk-download").start())
                     .setNegativeButton("下次再说", null)
                     .show());
-        } catch (Exception ignored) {
-            // 无网络 / 接口不可用：不打扰用户
+        } catch (Exception e) {
+            appLog("检查更新失败：" + e);
+            if (force) toastUi("检查失败：" + e.getMessage());
         }
     }
 
     /** 下载新 APK 到 cacheDir/update.apk，成功后拉起系统安装器。 */
-    private void downloadAndInstall(int remoteVersionCode) {
+    private void downloadAndInstall() {
         File apk = new File(getCacheDir(), "update.apk");
         try {
+            appLog("下载更新：开始");
             HttpURLConnection conn = openGet(UPDATE_APK_URL, 30000);
             if (conn.getResponseCode() != 200) throw new Exception("http " + conn.getResponseCode());
             InputStream in = conn.getInputStream();
             FileOutputStream out = new FileOutputStream(apk);
             byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            int n, total = 0;
+            while ((n = in.read(buf)) > 0) { out.write(buf, 0, n); total += n; }
             out.close();
             in.close();
             conn.disconnect();
             if (apk.length() < 1024) throw new Exception("apk too small");
+            appLog("下载更新：完成 " + total + " 字节");
 
             runOnUiThread(() -> {
                 try {
@@ -193,12 +239,15 @@ public class MainActivity extends Activity {
                     i.setDataAndType(uri, "application/vnd.android.package-archive");
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(i);
+                    appLog("安装：已拉起系统安装器");
                     Toast.makeText(MainActivity.this, "下载完成，请在安装提示中确认", Toast.LENGTH_LONG).show();
                 } catch (Exception e) {
+                    appLog("安装失败：" + e);
                     Toast.makeText(MainActivity.this, "无法启动安装：" + e.getMessage(), Toast.LENGTH_LONG).show();
                 }
             });
         } catch (Exception e) {
+            appLog("下载更新失败：" + e);
             runOnUiThread(() -> Toast.makeText(MainActivity.this,
                     "更新下载失败，请稍后重试", Toast.LENGTH_SHORT).show());
         }
@@ -244,6 +293,19 @@ public class MainActivity extends Activity {
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 从后台切回也检查更新（5 分钟节流；onCreate 的那次检查已计入 lastAutoCheckAt）
+        long now = System.currentTimeMillis();
+        if (now - lastAutoCheckAt < 5 * 60 * 1000L) return;
+        lastAutoCheckAt = now;
+        new Thread(() -> {
+            try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+            checkForUpdate(false);
+        }).start();
     }
 
     @Override

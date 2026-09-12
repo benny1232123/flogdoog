@@ -80,6 +80,15 @@ window.LP = (function () {
         timerId: null
     };
 
+    /* ---------------- PWA：添加到桌面 ---------------- */
+    // beforeinstallprompt 只有浏览器允许时才触发（Chrome/Edge 安卓可用）；
+    // 触发不了的平台（iOS Safari / 微信）走「添加」按钮里的手动引导文案。
+    let installPromptEvent = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        installPromptEvent = e;
+    });
+
     /* ---------------- Toast ---------------- */
     let toastTimer = null;
     function toast(text) {
@@ -89,6 +98,49 @@ window.LP = (function () {
         el.classList.add('is-show');
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => el.classList.remove('is-show'), 2000);
+    }
+
+    /* ---------------- 站内服确认弹窗（替代原生 confirm） ---------------- */
+    // 原生 confirm 在桌面 Chrome / 微信 PC 内置浏览器里会被拦截或弹出不稳定的系统框，
+    // 改用页内 Promise 弹窗，桌面 / 移动端行为一致，也避免遮挡页面。
+    function confirmModal(message, opts) {
+        opts = opts || {};
+        return new Promise((resolve) => {
+            const el = $('#lp-confirm');
+            if (!el) { resolve(window.confirm(message || '')); return; } // 兜底：DOM 缺失时用原生
+            const msgEl = $('#lp-confirm-msg', el);
+            if (msgEl) msgEl.textContent = message || '';
+            const okBtn = $('#lp-confirm-ok', el);
+            const cancelBtn = $('#lp-confirm-cancel', el);
+            if (okBtn && opts.okText) okBtn.textContent = opts.okText;
+            if (cancelBtn) {
+                if (opts.cancelText) cancelBtn.textContent = opts.cancelText;
+                cancelBtn.style.display = opts.cancelHide ? 'none' : '';
+            }
+            const done = (val) => {
+                el.classList.remove('is-open');
+                el.setAttribute('aria-hidden', 'true');
+                // 还原按钮默认文案/可见性，避免影响下一次弹窗
+                if (okBtn) okBtn.textContent = '确定';
+                if (cancelBtn) { cancelBtn.textContent = '取消'; cancelBtn.style.display = ''; }
+                if (okBtn) okBtn.removeEventListener('click', onOk);
+                if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+                document.removeEventListener('keydown', onKey);
+                resolve(val);
+            };
+            const onOk = () => done(true);
+            const onCancel = () => done(false);
+            const onKey = (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); done(false); }
+                else if (e.key === 'Enter') { e.preventDefault(); done(true); }
+            };
+            if (okBtn) okBtn.addEventListener('click', onOk);
+            if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+            document.addEventListener('keydown', onKey);
+            el.classList.add('is-open');
+            el.setAttribute('aria-hidden', 'false');
+            if (okBtn) okBtn.focus();
+        });
     }
 
     /* ---------------- 主题 ---------------- */
@@ -227,6 +279,7 @@ window.LP = (function () {
         const fineEl = $('#counter-fine');
         const textEl = $('#counter-text');
         const sinceEl = $('#counter-since');
+        const mileEl = $('#counter-milestone');
 
         if (sinceEl) sinceEl.textContent = `自 ${fmtDate(start)} 起`;
 
@@ -240,6 +293,22 @@ window.LP = (function () {
             const days = Math.abs(dayDiff(start, now));
             if (days !== printed) {
                 if (daysEl) daysEl.textContent = days.toLocaleString('zh-CN');
+
+                // 恋爱里程碑（参考 SharedMoments 的 milestone 提醒）
+                if (mileEl) {
+                    const MILES = [100, 200, 300, 365, 500, 777, 1000, 1314, 2000, 3000, 4000, 5000, 10000];
+                    const hit = MILES.find((m) => m === days);
+                    const next = MILES.find((m) => m > days);
+                    if (hit) {
+                        mileEl.hidden = false;
+                        mileEl.textContent = `今天是在一起的第 ${hit} 天`;
+                    } else if (next && !future) {
+                        mileEl.hidden = false;
+                        mileEl.textContent = `距离在一起 ${next.toLocaleString('zh-CN')} 天，还有 ${(next - days).toLocaleString('zh-CN')} 天`;
+                    } else {
+                        mileEl.hidden = true;
+                    }
+                }
                 printed = days;
             }
 
@@ -425,7 +494,7 @@ window.LP = (function () {
             '#opt-petals': 'petals'
         };
 
-        Object.keys(map).forEach((sel) => { $(sel).checked = !!s[map[sel]]; });
+        Object.keys(map).forEach((sel) => { const el = $(sel); if (el) el.checked = !!s[map[sel]]; });
         $('#opt-expiry').value = s.expiryMinutes;
 
         const open = () => { sheet.classList.add('is-open'); sheet.setAttribute('aria-hidden', 'false'); };
@@ -447,10 +516,11 @@ window.LP = (function () {
             applyTheme(); saveSettings();
         });
 
-        $('#opt-order').addEventListener('change', (e) => {
+        const orderEl = $('#opt-order');
+        if (orderEl) orderEl.addEventListener('change', (e) => {
             s.reverseTimeline = e.target.checked;
             saveSettings();
-            LP.renderTimeline();
+            if (LP.renderTimeline) LP.renderTimeline();
             toast(s.reverseTimeline ? '最近的故事在最前面' : '按时间顺序讲述');
         });
 
@@ -472,6 +542,52 @@ window.LP = (function () {
 
         $('#btn-lock').addEventListener('click', lockNow);
 
+        // App 内更新入口：仅在 WebView 壳（UA 带 FlogdoogApp 标记）里显示
+        if (/FlogdoogApp/i.test(navigator.userAgent)) {
+            const row = $('#app-update-row');
+            if (row) row.hidden = false;
+            const btn = $('#app-check-update');
+            if (btn) btn.addEventListener('click', () => {
+                if (window.LPApp && typeof window.LPApp.checkUpdate === 'function') {
+                    toast('正在检查更新…');
+                    window.LPApp.checkUpdate();
+                } else {
+                    toast('当前 App 版本不支持，请手动更新');
+                }
+            });
+        }
+
+        // 添加到桌面：能弹安装框就弹，否则按平台给手动引导
+        const pwaBtn = $('#pwa-install');
+        if (pwaBtn) pwaBtn.addEventListener('click', async () => {
+            const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            if (standalone) { toast('已经添加过桌面啦'); return; }
+            if (installPromptEvent) {
+                try {
+                    installPromptEvent.prompt();
+                    const choice = await installPromptEvent.userChoice;
+                    toast(choice && choice.outcome === 'accepted' ? '已添加到桌面 ✓' : '已取消');
+                } catch (e) { /* 用户关闭等，忽略 */ }
+                installPromptEvent = null;
+                return;
+            }
+            if (/MicroMessenger/i.test(navigator.userAgent)) {
+                // 新版安卓微信的「…」菜单大多已移除「添加到桌面」，给详细绕行指引
+                const copied = await LP.confirm(
+                    '你的微信菜单里没有「添加到桌面」入口（新版微信已移除）。这样做：\n\n1. 点右上角「···」\n2. 选「在浏览器中打开」\n3. 在浏览器菜单里选「添加到桌面」或「安装应用」',
+                    { okText: '知道了', cancelText: '复制网址' }
+                );
+                if (!copied) {
+                    try { await navigator.clipboard.writeText(location.href.split('#')[0]); toast('网址已复制，去浏览器粘贴打开'); }
+                    catch (e) { toast('复制失败，请手动复制地址栏网址'); }
+                }
+            } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                toast('用 Safari 打开 → 分享 → 「添加到主屏幕」');
+            } else {
+                toast('在浏览器菜单里选「安装应用 / 添加到主屏幕」');
+            }
+        });
+
         // 进入「编辑内容」后台（需先解锁，等同于已通过密码校验）
         const editBtn = $('#btn-edit');
         if (editBtn) editBtn.addEventListener('click', () => {
@@ -480,8 +596,8 @@ window.LP = (function () {
             else toast('编辑器未加载');
         });
 
-        $('#btn-clear').addEventListener('click', () => {
-            if (!confirm('确定要清空所有悄悄话吗？此操作无法撤销。')) return;
+        $('#btn-clear').addEventListener('click', async () => {
+            if (!(await LP.confirm('确定要清空所有悄悄话吗？此操作无法撤销。'))) return;
             store.del(LS.messages);
             store.del(LS.likes);
             LP.renderMessages();
@@ -522,7 +638,10 @@ window.LP = (function () {
                 const udVal = ud[k];
                 const udEmpty = !udVal || (Array.isArray(udVal) && udVal.length === 0);
                 if (hasCfg && udEmpty) {
-                    ud[k] = JSON.parse(JSON.stringify(cfg));
+                    let items = JSON.parse(JSON.stringify(cfg));
+                    // 跳过已删除墓碑项，避免「删过的默认照片/条目」在重启后被 config.json 重新种回来
+                    if (LP.Sync && LP.Sync.filterTombstoned) items = LP.Sync.filterTombstoned(k, items);
+                    ud[k] = items;
                     changed = true;
                 }
             });
@@ -563,7 +682,10 @@ window.LP = (function () {
         const brand = $('#brand-text');
         if (brand) brand.textContent = data.site.title || '';
         const eyebrow = $('#hero-eyebrow');
-        if (eyebrow && data.site.subtitle) eyebrow.textContent = data.site.subtitle;
+        if (eyebrow) {
+            eyebrow.textContent = data.site.subtitle || '';
+            if (!data.site.subtitle) eyebrow.style.display = 'none';
+        }
         const note = $('#footer-note');
         if (note) note.textContent = data.site.footerNote || '';
 
@@ -583,6 +705,7 @@ window.LP = (function () {
             initNav();
             initToTop();
             initSettings();
+            if (LP.InlineEdit) LP.InlineEdit.init();
             const rb = $('#refresh-btn'); if (rb) rb.addEventListener('click', refreshSite);
             $('#app').classList.add('is-ready');
             observeReveal($$('.reveal'));
@@ -622,6 +745,10 @@ window.LP = (function () {
                             // 否则云端为空时本机预存内容永远不会被上传，表现为「这边改了那边看不到」。
                             // pushAll 内部先拉后推，不会用本机旧数据覆盖对方改动。
                             try { await LP.Sync.pushAll(); } catch (e) { console.warn('[LP] 内容上传失败：', e); }
+                            // 兜底再渲染一次：pushAll 内部会先拉后推，此时云端所有模块都已合并到本机。
+                            // 若首屏渲染发生在拉取完成之前（冷 KV / 弱网时会差几秒），这一步保证 UI 一定收敛。
+                            LP.renderAll();
+                            LP.renderMessages();
                         } else if (remote && !remote.ok && remote.reason !== 'unconfigured') {
                             console.warn('[LP] 云同步拉取未成功：', remote.reason);
                         }
@@ -676,11 +803,16 @@ window.LP = (function () {
             } catch (e) { return fb; }
         };
         const cfg = state.config || {};
+        let schedCount = 0;
+        try {
+            const sd = (LP.Schedule && LP.Schedule.exportData) ? LP.Schedule.exportData() : null;
+            schedCount = (sd && sd.events) ? sd.events.length : 0;
+        } catch (e) { /* 忽略 */ }
         const items = [
             { n: (cfg.anniversaries || []).length, l: '纪念日' },
+            { n: schedCount, l: '日程' },
             { n: (cfg.gallery || []).length, l: '照片' },
-            { n: len('lp_footprint', 0), l: '足迹' },
-            { n: len('lp_rating', 0), l: '点评' }
+            { n: len('lp.messages', 0), l: '悄悄话' }
         ];
         el.innerHTML = items.map(function (it) {
             return '<div class="overview-item"><span class="ov-num">' + it.n + '</span><span class="ov-label">' + it.l + '</span></div>';
@@ -690,6 +822,6 @@ window.LP = (function () {
     /* ---------------- 对外接口 ---------------- */
     return {
         LS, $, $$, store, esc, pad, parseDate, dayDiff, fmtDate, fmtRelTime,
-        state, toast, observeReveal, lazyImages, startCounter, refreshSite, renderOverview
+        state, toast, confirm: confirmModal, observeReveal, lazyImages, startCounter, refreshSite, renderOverview
     };
 })();
