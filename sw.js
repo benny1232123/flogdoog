@@ -1,5 +1,5 @@
 /* =========================================================
-   sw.js — 我们的小星球 · Service Worker
+   sw.js — 阿蛙阿狗的秘密基地 · Service Worker
    作用：让站点可「安装到主屏幕」(PWA) + 离线可用。
    策略：
      · 外壳(index.html / manifest / 图标) 安装时预缓存
@@ -8,13 +8,14 @@
      · 其余同源静态资源 cache-first（资源带 ?v= 版本戳，升戳即换新）
      · 跨域请求（Cloudflare KV 同步）直接透传，不缓存
    ========================================================= */
-const CACHE = 'flogdoog-sw-v1';
+const CACHE = 'flogdoog-sw-v3';
 
 const SHELL = [
     './index.html',
     './manifest.webmanifest',
-    './assets/icons/icon.svg',
-    './assets/icons/icon-maskable.svg',
+    './assets/icons/icon-192.png',
+    './assets/icons/icon-512.png',
+    './assets/icons/icon-maskable-512.png',
     './assets/icons/apple-touch-icon.png'
 ];
 

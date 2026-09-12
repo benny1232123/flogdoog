@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -14,20 +14,38 @@
             window.addEventListener('resize', setVH);
             window.addEventListener('orientationchange', setVH);
         })();
+        // 极早期的错误收集：?debug=1 时调试面板启动后会把这些补进去
+        // （脚本报错常常发生在面板加载之前，不记下来就永远看不到）
+        (function () {
+            window.__LPLOG = [];
+            function rec(level, msg) {
+                window.__LPLOG.push({ t: Date.now(), level: level, msg: msg });
+            }
+            window.addEventListener('error', function (e) {
+                rec('error', (e.message || '脚本错误') +
+                    (e.filename ? ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno : ''));
+            });
+            window.addEventListener('unhandledrejection', function (e) {
+                var r = e && e.reason;
+                rec('error', '未处理的 Promise 拒绝：' + ((r && r.message) || r || '(未知)'));
+            });
+        })();
     </script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#FFF7F3">
     <meta name="format-detection" content="telephone=no">
-    <meta name="description" content="属于我们两个人的小星球 — 恋爱时间轴、照片墙与纪念日记录">
-    <title>我们的小星球</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="属于我们两个人的秘密基地 — 照片墙、纪念日与悄悄话">
+    <title>阿蛙阿狗的秘密基地</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-    <meta name="apple-mobile-web-app-title" content="小星球">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💗</text></svg>">
-    <link rel="stylesheet" href="css/base.css?v=15">
-    <link rel="stylesheet" href="css/style.css?v=15">
+    <meta name="apple-mobile-web-app-title" content="秘密基地">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="stylesheet" href="css/base.css?v=52">
+    <link rel="stylesheet" href="css/style.css?v=52">
 </head>
 
 <body data-theme="light">
@@ -81,15 +99,11 @@
             <nav class="nav" id="nav-desktop">
                 <a href="#home" class="nav-link is-active" data-target="home">主页</a>
                 <a href="#days" class="nav-link" data-target="days">纪念日</a>
-                <a href="#story" class="nav-link" data-target="story">时间轴</a>
                 <a href="#wall" class="nav-link" data-target="wall">照片墙</a>
-                <a href="#board" class="nav-link" data-target="board">留言板</a>
-                <a href="#schedule" class="nav-link" data-target="schedule">日程</a>
+                <a href="#board" class="nav-link" data-target="board">悄悄话</a>
+                <a href="#calendar" class="nav-link" data-target="calendar">日历</a>
                 <a href="#rating" class="nav-link" data-target="rating">点评</a>
-                <a href="#period" class="nav-link" data-target="period">经期</a>
-                <a href="#resources" class="nav-link" data-target="resources">资料</a>
-                <a href="#footprint" class="nav-link" data-target="footprint">足迹</a>
-                <a href="#room" class="nav-link" data-target="room">小屋</a>
+                <a href="#drive" class="nav-link" data-target="drive">云盘</a>
             </nav>
             <button class="icon-btn" id="refresh-btn" aria-label="刷新" title="从云端刷新内容">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -98,6 +112,12 @@
                 </svg>
             </button>
             <span id="sync-status" class="sync-status" title="云端同步状态：初始化…" data-state="init">●</span>
+            <button class="icon-btn" id="edit-toggle" aria-label="编辑" title="直接编辑页面内容">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 013 3L7.5 18.5 3 20l1.5-4.5z" />
+                </svg>
+            </button>
             <button class="icon-btn" id="settings-open" aria-label="设置">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <circle cx="12" cy="12" r="3" />
@@ -120,7 +140,7 @@
                 <img class="mascot mascot-dog" src="assets/mascots/dog.svg" alt="">
             </div>
 
-            <p class="eyebrow reveal" id="hero-eyebrow">Our Little Planet</p>
+            <p class="eyebrow reveal" id="hero-eyebrow"></p>
 
             <div class="couple reveal">
                 <figure class="who" id="who-a">
@@ -163,11 +183,19 @@
                     <span><b>00</b>年</span><span><b>00</b>月</span><span><b>00</b>日</span>
                     <span><b>00</b>时</span><span><b>00</b>分</span><span><b>00</b>秒</span>
                 </div>
+                <p class="counter-milestone" id="counter-milestone" hidden></p>
                 <div class="counter-since" id="counter-since"></div>
+                <button class="btn-share" id="counter-share" type="button">把这一天存成卡片</button>
             </div>
 
             <!-- 首屏概览条：一起积累的内容（产品门面） -->
             <div class="overview reveal" id="overview"></div>
+
+            <!-- 下一个纪念日（情侣 App 首页常见：把最近的重要日提前） -->
+            <div class="next-anniv reveal" id="next-anniv" hidden></div>
+
+            <!-- 最近的照片（参考 SharedMoments 的首页照片流） -->
+            <div class="recent reveal" id="recent" hidden></div>
 
             <!-- 双人资料卡 -->
             <div class="cards reveal" id="profile-cards"></div>
@@ -194,15 +222,6 @@
                 <p class="sec-sub">那些值得被反复记起的日子</p>
             </div>
             <div class="anniv-grid" id="anniv-grid"></div>
-        </section>
-
-        <!-- ---------- 恋爱时间轴 ---------- -->
-        <section class="section" id="story">
-            <div class="sec-head reveal">
-                <h2 class="sec-title">我们的时间轴</h2>
-                <p class="sec-sub">故事是一天一天长出来的</p>
-            </div>
-            <div class="timeline" id="timeline"></div>
         </section>
 
         <!-- ---------- 照片墙 ---------- -->
@@ -255,6 +274,9 @@
                 <p class="sec-sub">只有我们看得到 · 保存在本机</p>
             </div>
 
+            <!-- 互评榜（评分放悄悄话上面） -->
+            <div class="scoreboard reveal" id="scoreboard"></div>
+
             <div class="composer reveal">
                 <div class="composer-top">
                     <span class="composer-tip">现在是谁在说话</span>
@@ -275,33 +297,19 @@
         </section>
 
         <!-- ---------- 日程 / 待办 / 购物 ---------- -->
-        <section class="section" id="schedule">
+        <!-- ---------- 统一日历：日程 + 经期追踪 ---------- -->
+        <section class="section" id="calendar">
             <div class="sec-head reveal">
-                <h2 class="sec-title">日程</h2>
-                <p class="sec-sub">待办 · 约会 · 购物 · 提醒</p>
+                <h2 class="sec-title">日历</h2>
+                <p class="sec-sub">日程 · 经期 · 排卵期</p>
             </div>
 
-            <!-- 快捷添加 -->
-            <div class="sched-quick reveal">
-                <input type="text" id="sched-input" class="sched-input" placeholder="加一条待办/购物/约会…" maxlength="100">
-                <input type="date" id="sched-date-input" class="sched-type-select" title="日期（可留空=今天）">
-                <select id="sched-type" class="sched-type-select">
-                    <option value="todo">待办</option>
-                    <option value="shopping">购物</option>
-                    <option value="date">💕 约会</option>
-                    <option value="reminder">提醒</option>
-                </select>
-                <select id="sched-repeat" class="sched-type-select" title="重复">
-                    <option value="">不重复</option>
-                    <option value="yearly">🔁 每年</option>
-                </select>
-                <button class="btn-primary" id="sched-add-btn" type="button">添加</button>
+            <!-- 添加日程：内容在二级窗口里填，版面里不再堆填空 -->
+            <div class="sched-add-row reveal">
+                <button class="btn-ghost sched-add-open" type="button">＋ 添加日程</button>
             </div>
 
-            <!-- 即将到来 -->
-            <div class="sched-upcoming reveal" id="sched-upcoming" style="display:none"></div>
-
-            <!-- 📆 日历主视图（始终显示） -->
+            <!-- 📆 共享日历（经期语义 + 日程事件） -->
             <div class="sched-cal-wrap reveal" id="sched-cal-wrap">
                 <div class="sched-cal-nav">
                     <button class="cal-nav" id="sc-prev" type="button" aria-label="上个月">‹</button>
@@ -311,32 +319,50 @@
                 </div>
                 <div class="cal-dow" id="sc-dow"></div>
                 <div class="cal-grid" id="sched-calendar"></div>
-                <!-- 当日事件详情 -->
-                <div class="sc-day-events" id="sc-day-events"><p class="sched-empty">点击日期查看 / 添加事件</p></div>
+                <div class="cal-legend">
+                    <span class="legend-item"><i class="dot dot-period"></i> 经期</span>
+                    <span class="legend-item"><i class="dot dot-predicted"></i> 预测经期</span>
+                    <span class="legend-item"><i class="dot dot-ovulation"></i> 排卵期</span>
+                    <span class="legend-item"><i class="dot dot-event"></i> 日程</span>
+                </div>
             </div>
 
-            <!-- 待办 & 购物（折叠面板） -->
+            <!-- 当日详情（紧贴日历下方） -->
+            <div class="sc-day-events reveal" id="sc-day-events"><p class="sched-empty">点一天，看看安排了什么</p></div>
+
+            <!-- 即将到来 -->
+            <div class="sched-upcoming reveal" id="sched-upcoming" style="display:none"></div>
+
+            <!-- 待办 / 购物 / 经期：同一组卡片（宽度与边距一致，视觉上一列对齐） -->
             <div class="sched-lists reveal">
                 <details class="sched-details" open>
-                    <summary class="sched-summary">☐ 待办事项 <span class="sched-count" id="sched-todo-count">0</span></summary>
+                    <summary class="sched-summary"><span class="sched-ico">✅</span>待办事项 <span class="sched-count" id="sched-todo-count">0</span></summary>
                     <div class="sched-panel" id="sched-panel-todo"></div>
                 </details>
                 <details class="sched-details">
-                    <summary class="sched-summary">🛒 购物清单 <span class="sched-count" id="sched-shop-count">0</span></summary>
+                    <summary class="sched-summary"><span class="sched-ico">🛒</span>购物清单 <span class="sched-count" id="sched-shop-count">0</span></summary>
                     <div class="sched-panel" id="sched-panel-shopping"></div>
                 </details>
+                <!-- 经期：预测卡常显；具体记录默认折叠（最小化）；记经期/结束经期都在日历里点日期操作 -->
+                <div class="period-history">
+                    <details class="sched-details" open>
+                        <summary class="sched-summary"><span class="sched-ico">🩸</span>经期 <span class="sched-count" id="period-rec-count">0</span></summary>
+                        <div class="period-predict" id="period-predict"></div>
+                        <details class="period-recs">
+                            <summary class="period-recs-summary">历史记录</summary>
+                            <div class="period-list" id="period-list"></div>
+                        </details>
+                    </details>
+                </div>
             </div>
         </section>
 
         <!-- ---------- 评分 / 点评 ---------- -->
         <section class="section" id="rating">
             <div class="sec-head reveal">
-                <h2 class="sec-title">评分 &amp; 点评</h2>
-                <p class="sec-sub">大笨狗 vs 小笨蛙 · 餐馆奶茶猫狗咖</p>
+                <h2 class="sec-title">点评</h2>
+                <p class="sec-sub">餐馆 · 奶茶 · 猫狗咖 · 甜品</p>
             </div>
-
-            <!-- 打分榜 -->
-            <div class="scoreboard reveal" id="scoreboard"></div>
 
             <!-- 点评区 -->
             <div class="review-sec reveal">
@@ -357,208 +383,30 @@
             </div>
         </section>
 
-        <!-- ---------- 经期追踪 ---------- -->
-        <!-- ===== 分组 03 ===== -->
-        <div class="group-head reveal">
-            <span class="group-no">03</span>
-            <h2 class="group-title">私密角落</h2>
-            <p class="group-desc">只属于两个人的小空间</p>
-        </div>
-
-        <section class="section" id="period">
+        <!-- ---------- 云盘 ---------- -->
+        <section class="section" id="drive">
             <div class="sec-head reveal">
-                <h2 class="sec-title">经期记录</h2>
-                <p class="sec-sub">记录 · 预测 · 照顾好自己</p>
+                <h2 class="sec-title">云盘</h2>
+                <p class="sec-sub">上传文件 · 多设备同步</p>
             </div>
 
-            <!-- 预测卡片 -->
-            <div class="period-predict reveal" id="period-predict"></div>
-
-            <!-- 快捷操作 -->
-            <div class="period-actions reveal">
-                <button class="btn-primary" id="period-start-btn" type="button">🔴 今天来了</button>
-                <button class="btn-ghost" id="period-end-btn" type="button">✅ 今天结束</button>
-            </div>
-
-            <!-- 日历 -->
-            <div class="period-cal-wrap reveal">
-                <div class="period-cal-header">
-                    <button class="cal-nav" id="cal-prev" type="button" aria-label="上个月">‹</button>
-                    <span class="cal-month" id="cal-month"></span>
-                    <button class="cal-nav" id="cal-next" type="button" aria-label="下个月">›</button>
-                    <button class="btn-ghost cal-today" id="cal-today" type="button">今天</button>
-                </div>
-                <div class="period-cal-grid" id="period-calendar"></div>
-                <div class="cal-legend">
-                    <span class="legend-item"><i class="dot dot-period"></i> 经期</span>
-                    <span class="legend-item"><i class="dot dot-predicted"></i> 预测经期</span>
-                    <span class="legend-item"><i class="dot dot-ovulation"></i> 排卵期</span>
-                    <span class="legend-item"><i class="dot dot-today"></i> 今天</span>
-                    <span class="legend-item"><i class="dot dot-symptom"></i> 有症状</span>
+            <div class="drive-toolbar reveal">
+                <input type="text" id="drive-search" class="sched-input" placeholder="搜索文件名…" maxlength="50">
+                <div class="drive-toolbar-right">
+                    <button class="res-view-btn is-active" id="drive-view-grid" title="网盘视图" type="button">▦</button>
+                    <button class="res-view-btn" id="drive-view-list" title="列表视图" type="button">☰</button>
+                    <button class="btn-primary btn-sm" id="drive-upload-btn" type="button">上传</button>
+                    <button class="link-btn drive-link-btn" id="drive-link-btn" type="button">+ 链接</button>
                 </div>
             </div>
 
-            <!-- 记录列表 -->
-            <div class="period-history reveal">
-                <h3 class="period-hist-title">历史记录</h3>
-                <div class="period-list" id="period-list"></div>
-            </div>
+            <input type="file" id="drive-file-input" multiple style="display:none">
+
+            <div class="drive-folders reveal" id="drive-folders"></div>
+
+            <div class="drive-list" id="drive-list"></div>
         </section>
 
-        <!-- ---------- 学术 / 资料库 ---------- -->
-        <section class="section" id="resources">
-            <div class="sec-head reveal">
-                <h2 class="sec-title">资料库</h2>
-                <p class="sec-sub">分类整理 · 随时查阅</p>
-            </div>
-
-            <!-- 搜索 + 添加 -->
-            <div class="res-toolbar reveal">
-                <input type="text" id="res-search" class="sched-input" placeholder="搜索标题/标签/摘要…" maxlength="50">
-                <button class="btn-primary" id="res-add-btn" type="button">+ 新增</button>
-            </div>
-
-            <!-- 分类标签 -->
-            <div class="res-cats reveal" id="res-cats"></div>
-
-            <!-- 标签筛选 -->
-            <div class="res-tags reveal" id="res-tags"></div>
-
-            <!-- 资料列表 -->
-            <div class="res-list" id="res-list"></div>
-        </section>
-
-        <!-- ---------- 足迹地图 ---------- -->
-        <!-- ===== 分组 04 ===== -->
-        <div class="group-head reveal">
-            <span class="group-no">04</span>
-            <h2 class="group-title">同行星图</h2>
-            <p class="group-desc">走过的路，住过的星球</p>
-        </div>
-
-        <section class="section" id="footprint">
-            <div class="sec-head reveal">
-                <h2 class="sec-title">我们的足迹</h2>
-                <p class="sec-sub">去过的地方 · 在地图上点亮每一个城市</p>
-            </div>
-
-            <!-- 统计 -->
-            <div class="fp-stats reveal" id="fp-stats"></div>
-
-            <!-- 中国地图 -->
-            <div class="fp-map-wrap reveal">
-                <div class="fp-map" id="fp-map"></div>
-                <p class="fp-map-hint">点击亮起（粉色）的省份可筛选该省的足迹 · 共 <b id="fp-prov-total">34</b> 个省级行政区</p>
-            </div>
-
-            <!-- 快捷打卡 -->
-            <div class="fp-form reveal">
-                <div class="fp-form-head">
-                    <span class="fp-form-title">📍 打个卡</span>
-                    <span class="fp-form-tip">记下这一站的小事</span>
-                </div>
-                <div class="fp-grid">
-                    <div class="field field-span2">
-                        <label class="f-label" for="fp-name-input">地名 / 店名 / 景点</label>
-                        <input type="text" id="fp-name-input" class="sched-input" placeholder="比如：西湖、巷口那家奶茶店…" maxlength="50">
-                    </div>
-                    <div class="field">
-                        <label class="f-label" for="fp-city-input">城市</label>
-                        <input type="text" id="fp-city-input" class="sched-input" placeholder="杭州、成都…" maxlength="30" list="fp-city-list">
-                        <datalist id="fp-city-list"></datalist>
-                    </div>
-                    <div class="field">
-                        <label class="f-label" for="fp-province-input">省份 / 地区</label>
-                        <select id="fp-province-input" class="sched-type-select"><option value="">选择省份…</option></select>
-                    </div>
-                    <div class="field">
-                        <label class="f-label" for="fp-date-input">日期</label>
-                        <input type="date" id="fp-date-input" class="sched-type-select">
-                    </div>
-                    <div class="field">
-                        <label class="f-label" for="fp-who-input">和谁</label>
-                        <select id="fp-who-input" class="sched-type-select">
-                            <option value="">一起 💞</option>
-                            <option value="a">阿蛙 🐸</option>
-                            <option value="b">阿狗 🐕</option>
-                        </select>
-                    </div>
-                    <div class="field field-span2">
-                        <label class="f-label" for="fp-note-input">备注 <i>（可选）</i></label>
-                        <input type="text" id="fp-note-input" class="sched-input" placeholder="和谁、吃了啥、心情…" maxlength="80">
-                    </div>
-                    <button class="btn-primary fp-checkin" id="fp-checkin-btn" type="button">📍 打卡</button>
-                </div>
-            </div>
-
-            <!-- 筛选条 -->
-            <div class="fp-filter-bar" id="fp-filter-bar"></div>
-
-            <!-- 搜索 -->
-            <div class="fp-search reveal">
-                <input type="text" id="fp-search" class="sched-input" placeholder="搜索足迹…">
-            </div>
-
-            <!-- 足迹列表 -->
-            <div class="fp-list" id="fp-list"></div>
-        </section>
-
-        <!-- ---------- 虚拟房间 ---------- -->
-        <section class="section" id="room">
-            <div class="sec-head reveal">
-                <h2 class="sec-title">我们的小屋</h2>
-                <p class="sec-sub">一起装扮 · 互动玩耍</p>
-            </div>
-
-            <!-- 房间画布 -->
-            <div class="room-canvas reveal" id="room-canvas">
-                <!-- 家具层（动态生成） -->
-                <div class="room-furniture" id="room-furniture"></div>
-
-                <!-- 宠物层（动态生成） -->
-                <div class="room-pets" id="room-pets"></div>
-
-                <!-- Avatar 层 -->
-                <div class="room-avatar room-avatar-a" id="room-avatar-a" title="阿蛙（拖动移动）">
-                    <div class="avatar-body">🐸</div>
-                    <div class="avatar-name">阿蛙</div>
-                </div>
-                <div class="room-avatar room-avatar-b" id="room-avatar-b" title="阿狗（拖动移动）">
-                    <div class="avatar-body">🐕</div>
-                    <div class="avatar-name">阿狗</div>
-                </div>
-
-                <!-- 互动特效层 -->
-                <div class="room-effects" id="room-effects"></div>
-
-                <!-- 房间地板装饰 -->
-                <div class="room-floor" aria-hidden="true"></div>
-            </div>
-
-            <!-- 互动按钮 -->
-            <div class="room-actions reveal">
-                <button class="room-action-btn" id="ra-play-ball" type="button">🎾 打球</button>
-                <button class="room-action-btn" id="ra-dance" type="button">💃 跳舞</button>
-                <button class="room-action-btn" id="ra-wave" type="button">👋 挥手</button>
-                <button class="room-action-btn" id="ra-hug" type="button">🤗 抱抱</button>
-            </div>
-
-            <!-- 装扮控制面板 -->
-            <div class="room-panel reveal">
-                <details open>
-                    <summary>🎨 墙壁颜色</summary>
-                    <div class="panel-grid wall-colors" id="wall-colors"></div>
-                </details>
-                <details>
-                    <summary>🪑 家具摆设</summary>
-                    <div class="panel-grid furn-list" id="furn-list"></div>
-                </details>
-                <details>
-                    <summary>🐾 宠物</summary>
-                    <div class="panel-grid pet-list" id="pet-list"></div>
-                </details>
-            </div>
-        </section>
 
         <footer class="footer">
             <span class="footer-heart" aria-hidden="true">
@@ -583,41 +431,25 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
             <span>纪念日</span>
         </a>
-        <a href="#story" class="tab" data-target="story">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18"/><circle cx="12" cy="8" r="2.4"/><circle cx="12" cy="16" r="2.4"/></svg>
-            <span>时间轴</span>
-        </a>
         <a href="#wall" class="tab" data-target="wall">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 15l5-4 4 3 3-2 6 5"/><circle cx="8.5" cy="9" r="1.4"/></svg>
             <span>照片墙</span>
+        </a>
+        <a href="#calendar" class="tab" data-target="calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+            <span>日历</span>
         </a>
         <a href="#board" class="tab" data-target="board">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a8 8 0 01-8 8H8l-5 3 1.6-4.4A8 8 0 1121 12z"/></svg>
             <span>悄悄话</span>
         </a>
-        <a href="#schedule" class="tab" data-target="schedule">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
-            <span>日程</span>
-        </a>
         <a href="#rating" class="tab" data-target="rating">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
             <span>点评</span>
         </a>
-        <a href="#period" class="tab" data-target="period">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
-            <span>经期</span>
-        </a>
-        <a href="#resources" class="tab" data-target="resources">
+        <a href="#drive" class="tab" data-target="drive">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            <span>资料</span>
-        </a>
-        <a href="#footprint" class="tab" data-target="footprint">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22s-8-4.5-8-11.8A8.8 8.8 0 0112 4.4a8.8 8.8 0 018 7.4c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="11" r="3"/></svg>
-            <span>足迹</span>
-        </a>
-        <a href="#room" class="tab" data-target="room">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-            <span>小屋</span>
+            <span>云盘</span>
         </a>
     </nav>
 
@@ -662,10 +494,6 @@
                 <label class="switch"><input type="checkbox" id="opt-system"><span class="slider"></span></label>
             </div>
             <div class="setting">
-                <div class="setting-text"><b>时间轴倒序</b><small>把最近的故事放在最上面</small></div>
-                <label class="switch"><input type="checkbox" id="opt-order"><span class="slider"></span></label>
-            </div>
-            <div class="setting">
                 <div class="setting-text"><b>飘落特效</b><small>背景的花瓣与爱心</small></div>
                 <label class="switch"><input type="checkbox" id="opt-petals"><span class="slider"></span></label>
             </div>
@@ -673,12 +501,34 @@
                 <div class="setting-text"><b>解锁有效期</b><small>超过时间后需要重新输入密码（分钟）</small></div>
                 <input type="number" id="opt-expiry" class="num-input" min="1" max="1440">
             </div>
+            <div class="setting">
+                <div class="setting-text"><b>添加到桌面</b><small>像 App 一样从手机主屏幕打开</small></div>
+                <button class="btn-ghost" id="pwa-install" type="button">添加</button>
+            </div>
 
             <div class="sheet-foot">
                 <button class="btn-ghost" id="btn-export">导出悄悄话</button>
                 <button class="btn-ghost btn-danger" id="btn-clear">清空悄悄话</button>
                 <button class="btn-ghost btn-edit" id="btn-edit">编辑内容</button>
                 <button class="btn-ghost" id="btn-lock">立即锁定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 更多面板已移除：全部功能已直接放入底部 Tab（主页/纪念日/照片墙/日历/悄悄话/点评/云盘） -->
+
+    <!-- ============ 恋爱天数卡片（参考 SharedMoments 可导出的 banner） ============ -->
+    <div class="sheet" id="card-sheet" aria-hidden="true">
+        <div class="sheet-panel">
+            <div class="sheet-head">
+                <h3>保存卡片</h3>
+                <button class="icon-btn" id="card-close" aria-label="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="card-shot">
+                <img id="card-img" alt="恋爱天数卡片">
+                <p class="card-shot-hint">长按图片保存到相册</p>
             </div>
         </div>
     </div>
@@ -698,10 +548,6 @@
             </div>
             <div class="editor-tabs" id="editor-tabs">
                 <button class="editor-tab is-active" data-tab="site" type="button">站点</button>
-                <button class="editor-tab" data-tab="couple" type="button">资料</button>
-                <button class="editor-tab" data-tab="anniv" type="button">纪念日</button>
-                <button class="editor-tab" data-tab="timeline" type="button">时间轴</button>
-                <button class="editor-tab" data-tab="wall" type="button">照片墙</button>
             </div>
             <div class="editor-body" id="editor-body"></div>
             <div class="editor-foot">
@@ -712,7 +558,27 @@
         <input type="file" id="editor-file-input" accept="application/json,.json" hidden>
     </div>
 
+    <!-- ============ 站内服确认弹窗（替代原生 confirm，桌面/微信 PC 均可靠） ============ -->
+    <div class="lp-confirm" id="lp-confirm" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="lp-confirm-msg">
+        <div class="lp-confirm-box">
+            <p class="lp-confirm-msg" id="lp-confirm-msg"></p>
+            <div class="lp-confirm-actions">
+                <button type="button" class="btn-ghost" id="lp-confirm-cancel">取消</button>
+                <button type="button" class="btn-primary" id="lp-confirm-ok">确定</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
+
+    <!-- ============ 页内编辑工具条（顶栏铅笔按钮切换） ============ -->
+    <div class="edit-bar" id="edit-bar" hidden>
+        <span class="edit-bar-tip">点文字直接改，改完点「完成」</span>
+        <div class="edit-bar-actions">
+            <button class="ebtn" type="button" data-eact="backup">备份 / 同步</button>
+            <button class="btn-primary ebtn-done" type="button" data-eact="done">完成</button>
+        </div>
+    </div>
 
     <!-- 返回顶部：长页面导航兜底，滚动超过一屏后出现 -->
     <button id="to-top" class="to-top" aria-label="返回顶部" title="返回顶部" hidden>
@@ -722,28 +588,42 @@
         </svg>
     </button>
 
-    <script src="js/media.js?v=14"></script>
-    <script src="js/core.js?v=14"></script>
-    <script src="js/sync.js?v=14"></script>
-    <script src="js/period.js?v=14"></script>
-    <script src="js/mood.js?v=14"></script>
-    <script src="js/schedule.js?v=14"></script>
-    <script src="js/rating.js?v=14"></script>
-    <script src="js/resources.js?v=14"></script>
-    <script src="js/footprint.js?v=14"></script>
-    <script src="js/china-map.js?v=14"></script>
-    <script src="js/room.js?v=14"></script>
-    <script src="js/views/shared.js?v=14"></script>
-    <script src="js/views/messages-view.js?v=14"></script>
-    <script src="js/views/period-view.js?v=14"></script>
-    <script src="js/views/mood-view.js?v=14"></script>
-    <script src="js/views/schedule-view.js?v=14"></script>
-    <script src="js/views/rating-view.js?v=14"></script>
-    <script src="js/views/resources-view.js?v=14"></script>
-    <script src="js/views/footprint-view.js?v=14"></script>
-    <script src="js/views/room-view.js?v=14"></script>
-    <script src="js/app.js?v=14"></script>
-    <script src="js/editor.js?v=14"></script>
+    <script>
+        // 真机调试面板：默认不加载，只有显式开启才注入（?debug=1 / #debug / lp.debug=1）
+        // 放在业务脚本之前，才能捕获到初始化阶段的 console 输出
+        (function () {
+            var on = false;
+            try {
+                on = /(^|[?&])debug(=1)?\b/.test(location.search) ||
+                     /#debug/.test(location.hash) ||
+                     /(^|[?&])dev=1\b/.test(location.search) ||
+                     localStorage.getItem('lp.debug') === '1';
+            } catch (e) {}
+            if (!on) return;
+            var s = document.createElement('script');
+            s.src = 'js/debug.js?v=52';
+            s.async = false;
+            document.body.appendChild(s);
+        })();
+    </script>
+    <script src="js/media.js?v=52"></script>
+    <script src="js/core.js?v=52"></script>
+    <script src="js/sync.js?v=52"></script>
+    <script src="js/period.js?v=52"></script>
+    <script src="js/mood.js?v=52"></script>
+    <script src="js/schedule.js?v=52"></script>
+    <script src="js/rating.js?v=52"></script>
+    <script src="js/drive.js?v=52"></script>
+    <script src="js/views/shared.js?v=52"></script>
+    <script src="js/views/messages-view.js?v=52"></script>
+    <!-- 经期视图已合并进 calendar-view.js -->
+    <script src="js/views/mood-view.js?v=52"></script>
+    <script src="js/views/calendar-view.js?v=52"></script>
+    <script src="js/views/rating-view.js?v=52"></script>
+    <script src="js/views/drive-view.js?v=52"></script>
+    <script src="js/app.js?v=52"></script>
+    <script src="js/editor.js?v=52"></script>
+    <script src="js/inline-edit.js?v=52"></script>
     <script>
         // 注册 Service Worker，使站点可「安装到主屏幕」并支持离线
         if ('serviceWorker' in navigator) {
